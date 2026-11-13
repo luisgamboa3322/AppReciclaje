@@ -1,0 +1,41 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/api/**"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/api/**"
+      - ".github/workflows/api-ci.yml"
+
+jobs:
+  api-check:
+    name: Lint, Migrate, and Test API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check app tests alembic
+
+      - name: Alembic upgrade head
+        run: uv run alembic upgrade head
+
+      - name: Run pytest
+        run: uv run pytest -v
