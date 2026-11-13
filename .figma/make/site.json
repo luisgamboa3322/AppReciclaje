@@ -1,0 +1,10 @@
+{
+  "description": "Helps users explore and engage with the content provided, making its information easy to access and understand.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
