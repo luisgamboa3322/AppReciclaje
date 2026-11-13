@@ -15,17 +15,27 @@ class ScannerScreen extends ConsumerStatefulWidget {
 
 class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   bool _flashOn = false;
+  bool _pickerBusy = false;
 
   Future<void> _pickFromSource(ImageSource source) async {
+    if (_pickerBusy) return;
+    setState(() => _pickerBusy = true);
     final result = await ref.read(imagePickerServiceProvider).pick(source);
     if (!mounted) return;
+    setState(() => _pickerBusy = false);
+
     switch (result.outcome) {
       case PickImageOutcome.picked:
         ref.read(appStateProvider.notifier).setCapturedPhoto(result.path);
         context.push('/preview');
       case PickImageOutcome.unavailableFallback:
-        ref.read(appStateProvider.notifier).setCapturedPhoto(null);
-        context.push('/preview');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No hay cámara disponible en este dispositivo. Elige una fotografía desde tu galería.',
+            ),
+          ),
+        );
       case PickImageOutcome.cameraDenied:
         ref.read(appStateProvider.notifier).toggleCameraDenied(true);
       case PickImageOutcome.cancelled:
@@ -35,7 +45,30 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cameraDenied = ref.watch(appStateProvider).cameraDeniedSim;
+    final state = ref.watch(appStateProvider);
+    final cameraDenied = state.cameraDeniedSim;
+
+    if (!state.isAuthenticated || state.user.isGuest) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Escáner inteligente')),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: PecoxStateCard(
+              icon: Icons.lock_outline,
+              isWarning: true,
+              title: 'Inicia sesión para analizar residuos',
+              description:
+                  'El reconocimiento por fotografía se procesa de forma autenticada en el servidor PECOX y guarda tu historial personal.',
+              primaryLabel: 'Ir a iniciar sesión',
+              onPrimary: () => context.go('/auth'),
+              secondaryLabel: 'Abrir guía sin cuenta',
+              onSecondary: () => context.push('/guide'),
+            ),
+          ),
+        ),
+      );
+    }
 
     if (cameraDenied) {
       return Scaffold(
@@ -48,7 +81,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
               children: [
                 PecoxStateCard(
                   icon: Icons.no_photography_outlined,
-                  isWarning: true,
+                  isError: true,
                   title: 'Cámara no disponible o denegada',
                   description:
                       'PECOX necesita acceso a la cámara únicamente para capturar la foto que elijas analizar. Puedes elegir una imagen de tu galería o explorar la guía.',
@@ -61,7 +94,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                 TextButton(
                   onPressed: () =>
                       ref.read(appStateProvider.notifier).toggleCameraDenied(false),
-                  child: const Text('Simular permiso concedido'),
+                  child: const Text('Reintentar acceso a cámara'),
                 ),
               ],
             ),
@@ -136,7 +169,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                   child: Column(
                     children: [
                       Text(
-                        'FASE 1 UI · ANÁLISIS POR FOTO',
+                        'CAPTURA POR FOTOGRAFÍA · IA',
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 1.2,
@@ -211,6 +244,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       IconButton(
+                        key: const Key('scanner-gallery'),
                         onPressed: () => _pickFromSource(ImageSource.gallery),
                         tooltip: 'Elegir de la galería',
                         style: IconButton.styleFrom(
@@ -284,7 +318,6 @@ class _ViewfinderPainter extends CustomPainter {
     const len = 38.0;
     const r = 16.0;
 
-    // Top-left
     canvas.drawPath(
       Path()
         ..moveTo(0, len)
@@ -293,7 +326,6 @@ class _ViewfinderPainter extends CustomPainter {
         ..lineTo(len, 0),
       paint,
     );
-    // Top-right
     canvas.drawPath(
       Path()
         ..moveTo(size.width - len, 0)
@@ -302,7 +334,6 @@ class _ViewfinderPainter extends CustomPainter {
         ..lineTo(size.width, len),
       paint,
     );
-    // Bottom-left
     canvas.drawPath(
       Path()
         ..moveTo(0, size.height - len)
@@ -311,7 +342,6 @@ class _ViewfinderPainter extends CustomPainter {
         ..lineTo(len, size.height),
       paint,
     );
-    // Bottom-right
     canvas.drawPath(
       Path()
         ..moveTo(size.width - len, size.height)

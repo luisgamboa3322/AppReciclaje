@@ -31,7 +31,7 @@ class ProfileScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Editar datos personales',
+                'Editar datos locales',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 14),
@@ -51,7 +51,7 @@ class ProfileScreen extends ConsumerWidget {
                       emailCtrl.text.contains('@')) {
                     ref
                         .read(appStateProvider.notifier)
-                        .updateProfile(nameCtrl.text, emailCtrl.text);
+                        .updateProfileLocal(nameCtrl.text, emailCtrl.text);
                     Navigator.of(sheetCtx).pop();
                   }
                 },
@@ -118,9 +118,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _openSimulationSheet(BuildContext context, WidgetRef ref) {
+  void _openServerAndModelSheet(BuildContext context, WidgetRef ref) {
+    final urlCtrl = TextEditingController(text: ref.read(apiBaseUrlProvider));
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: PecoxColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -129,16 +131,37 @@ class ProfileScreen extends ConsumerWidget {
         return Consumer(
           builder: (ctx, modalRef, _) {
             final state = modalRef.watch(appStateProvider);
+            final modelInfo = state.modelInfo;
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  18,
+                  20,
+                  MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'Estados de prueba (Fase 1 UI)',
+                      'Servidor y modelo ML',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: urlCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'URL base API (/api/v1)',
+                        helperText: 'Emulador Android: http://10.0.2.2:8000/api/v1',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      modelInfo == null
+                          ? 'Estado del modelo: no consultado todavía'
+                          : 'Estado: ${modelInfo.status} · Versión: ${modelInfo.activeVersion ?? 'ninguna'}',
+                      style: const TextStyle(fontSize: 12, color: PecoxColors.textMuted),
                     ),
                     const SizedBox(height: 8),
                     SwitchListTile(
@@ -153,10 +176,21 @@ class ProfileScreen extends ConsumerWidget {
                       onChanged: (v) =>
                           modalRef.read(appStateProvider.notifier).toggleCameraDenied(v),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     ElevatedButton(
-                      onPressed: () => Navigator.of(sheetCtx).pop(),
-                      child: const Text('Cerrar'),
+                      onPressed: () async {
+                        final trimmed = urlCtrl.text.trim();
+                        if (trimmed.isNotEmpty) {
+                          modalRef.read(apiBaseUrlProvider.notifier).state = trimmed;
+                          await modalRef
+                              .read(appStateProvider.notifier)
+                              .refreshPublicMetadata();
+                        }
+                        if (sheetCtx.mounted) {
+                          Navigator.of(sheetCtx).pop();
+                        }
+                      },
+                      child: const Text('Aplicar y comprobar'),
                     ),
                   ],
                 ),
@@ -172,6 +206,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final user = state.user;
+    final modelVersion = state.modelInfo?.activeVersion ?? 'No conectado';
 
     return Scaffold(
       bottomNavigationBar: const PecoxBottomNav(currentIndex: 3),
@@ -262,12 +297,13 @@ class ProfileScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () =>
-                          _openEditProfile(context, ref, user.name, user.email),
-                      tooltip: 'Editar perfil',
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
+                    if (state.isAuthenticated)
+                      IconButton(
+                        onPressed: () =>
+                            _openEditProfile(context, ref, user.name, user.email),
+                        tooltip: 'Editar perfil',
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
                   ],
                 ),
               ),
@@ -296,16 +332,16 @@ class ProfileScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${state.history.length} clasificaciones en sesión',
+                          '${state.history.length} clasificaciones sincronizadas',
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: PecoxColors.forest900,
                           ),
                         ),
-                        const Text(
-                          'Datos demostrativos locales · Backend pendiente Fase 2',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF56796E)),
+                        Text(
+                          'Modelo ML: $modelVersion',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF56796E)),
                         ),
                       ],
                     ),
@@ -329,15 +365,6 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.person_outline, color: PecoxColors.emerald700),
-                    title: const Text('Datos personales'),
-                    subtitle: const Text('Nombre, correo e iniciales'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () =>
-                        _openEditProfile(context, ref, user.name, user.email),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
                     leading: const Icon(Icons.visibility_outlined, color: PecoxColors.emerald700),
                     title: const Text('Accesibilidad'),
                     subtitle: Text(
@@ -348,24 +375,9 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.shield_outlined, color: PecoxColors.emerald700),
-                    title: const Text('Privacidad y datos'),
-                    subtitle: const Text('Limpiar historial local de demostración'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      ref.read(appStateProvider.notifier).clearHistory();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Historial de demostración eliminado.'),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
                     leading: const Icon(Icons.bar_chart, color: PecoxColors.emerald700),
-                    title: const Text('Estadísticas (V2 Demo)'),
-                    subtitle: const Text('Actividad semanal y distribución'),
+                    title: const Text('Estadísticas'),
+                    subtitle: const Text('Actividad semanal y distribución real'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/stats'),
                   ),
@@ -379,18 +391,23 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.tune, color: PecoxColors.emerald700),
-                    title: const Text('Simulador de estados UI'),
-                    subtitle: const Text('Probar sin conexión o cámara denegada'),
+                    leading: const Icon(Icons.dns_outlined, color: PecoxColors.emerald700),
+                    title: const Text('Servidor y modelo ML'),
+                    subtitle: Text(ref.watch(apiBaseUrlProvider)),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openSimulationSheet(context, ref),
+                    onTap: () => _openServerAndModelSheet(context, ref),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: () => context.go('/auth'),
+              onPressed: () async {
+                await ref.read(appStateProvider.notifier).logout();
+                if (context.mounted) {
+                  context.go('/auth');
+                }
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: PecoxColors.error,
                 side: const BorderSide(color: Color(0xFFF0DEDE)),
@@ -400,7 +417,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 14),
             const Text(
-              'PECOX Vision · Fase 1 Flutter UI',
+              'PECOX Vision · MVP 1.0',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: PecoxColors.textMuted),
             ),

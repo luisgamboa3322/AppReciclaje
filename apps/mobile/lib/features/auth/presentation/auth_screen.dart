@@ -15,13 +15,13 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
-  final _nameCtrl = TextEditingController(text: 'Sofía Martínez');
-  final _emailCtrl = TextEditingController(text: 'sofia@ejemplo.com');
-  final _passCtrl = TextEditingController(text: 'pecox2026');
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   _AuthMode _mode = _AuthMode.login;
   bool _obscure = true;
-  String? _errorMsg;
-  String? _successMsg;
+  String? _localError;
+  String? _infoMsg;
 
   @override
   void dispose() {
@@ -31,47 +31,56 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     setState(() {
-      _errorMsg = null;
-      _successMsg = null;
+      _localError = null;
+      _infoMsg = null;
     });
 
     final email = _emailCtrl.text.trim();
-    final pass = _passCtrl.text.trim();
+    final pass = _passCtrl.text;
     final name = _nameCtrl.text.trim();
 
     if (ref.read(appStateProvider).offlineSim) {
-      setState(() => _errorMsg = 'Sin conexión a internet. Puedes explorar la guía sin cuenta.');
+      setState(() => _localError = 'Sin conexión a internet. Puedes explorar la guía sin cuenta.');
       return;
     }
     if (!email.contains('@')) {
-      setState(() => _errorMsg = 'Ingresa un correo electrónico válido.');
+      setState(() => _localError = 'Ingresa un correo electrónico válido.');
       return;
     }
-    if (_mode != _AuthMode.recover && pass.length < 6) {
-      setState(() => _errorMsg = 'La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-    if (_mode == _AuthMode.register && name.length < 2) {
-      setState(() => _errorMsg = 'Ingresa tu nombre completo.');
-      return;
-    }
-
     if (_mode == _AuthMode.recover) {
       setState(() {
-        _successMsg =
-            'Simulación de envío para $email. Se conectará al backend FastAPI en Fase 2.';
+        _infoMsg =
+            'El restablecimiento por correo aún no está habilitado en este servidor MVP. Crea una nueva cuenta o solicita ayuda al administrador.';
       });
       return;
     }
+    if (pass.length < 8) {
+      setState(() => _localError = 'La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (_mode == _AuthMode.register && name.length < 2) {
+      setState(() => _localError = 'Ingresa tu nombre completo (mínimo 2 caracteres).');
+      return;
+    }
 
-    ref.read(appStateProvider.notifier).loginUser(name, email);
-    context.go('/home');
+    final notifier = ref.read(appStateProvider.notifier);
+    final ok = _mode == _AuthMode.login
+        ? await notifier.login(email: email, password: pass)
+        : await notifier.register(name: name, email: email, password: pass);
+
+    if (!mounted) return;
+    if (ok) {
+      context.go('/home');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(appStateProvider);
+    final errorBanner = _localError ?? state.authError;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -91,7 +100,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       border: Border.all(color: const Color(0xFFBCEBD8)),
                     ),
                     child: const Text(
-                      'PROTOTIPO · AUTH DEMO',
+                      'API FASTAPI · JWT',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -118,8 +127,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: 6),
               Text(
                 _mode == _AuthMode.recover
-                    ? 'Te enviaremos instrucciones cuando el servicio de autenticación esté conectado.'
-                    : 'Guarda tus clasificaciones confirmadas y consulta tu historial personal.',
+                    ? 'Consulta el estado del servicio de recuperación de contraseña.'
+                    : 'Guarda tus clasificaciones confirmadas y sincroniza tu historial real.',
                 style: const TextStyle(fontSize: 13, height: 1.5, color: PecoxColors.textMuted),
               ),
               const SizedBox(height: 18),
@@ -130,14 +139,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ButtonSegment(value: _AuthMode.register, label: Text('Crear cuenta')),
                   ],
                   selected: {_mode},
-                  onSelectionChanged: (sel) => setState(() {
-                    _mode = sel.first;
-                    _errorMsg = null;
-                    _successMsg = null;
-                  }),
+                  onSelectionChanged: state.authBusy
+                      ? null
+                      : (sel) => setState(() {
+                            _mode = sel.first;
+                            _localError = null;
+                            _infoMsg = null;
+                          }),
                 ),
               const SizedBox(height: 16),
-              if (_errorMsg != null) ...[
+              if (errorBanner != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -151,7 +162,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _errorMsg!,
+                          errorBanner,
                           style: const TextStyle(fontSize: 12, color: Color(0xFFA3252A)),
                         ),
                       ),
@@ -160,7 +171,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
                 const SizedBox(height: 14),
               ],
-              if (_successMsg != null) ...[
+              if (_infoMsg != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -168,7 +179,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Text(
-                    _successMsg!,
+                    _infoMsg!,
                     style: const TextStyle(fontSize: 12, color: PecoxColors.emerald700),
                   ),
                 ),
@@ -177,24 +188,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               if (_mode == _AuthMode.register) ...[
                 TextField(
                   controller: _nameCtrl,
+                  enabled: !state.authBusy,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Nombre completo'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre completo',
+                    hintText: 'Ej. Sofía Martínez',
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
               TextField(
                 controller: _emailCtrl,
+                enabled: !state.authBusy,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Correo electrónico'),
+                decoration: const InputDecoration(
+                  labelText: 'Correo electrónico',
+                  hintText: 'nombre@correo.com',
+                ),
               ),
               if (_mode != _AuthMode.recover) ...[
                 const SizedBox(height: 12),
                 TextField(
                   controller: _passCtrl,
+                  enabled: !state.authBusy,
                   obscureText: _obscure,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
+                    hintText: 'Mínimo 8 caracteres',
                     suffixIcon: IconButton(
                       onPressed: () => setState(() => _obscure = !_obscure),
                       tooltip: _obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
@@ -207,24 +228,36 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () => setState(() {
-                      _mode = _AuthMode.recover;
-                      _errorMsg = null;
-                    }),
+                    onPressed: state.authBusy
+                        ? null
+                        : () => setState(() {
+                              _mode = _AuthMode.recover;
+                              _localError = null;
+                              _infoMsg = null;
+                            }),
                     style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
                     child: const Text('¿Olvidaste tu contraseña?'),
                   ),
                 ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _submit,
-                child: Text(
-                  _mode == _AuthMode.login
-                      ? 'Entrar a PECOX Vision'
-                      : _mode == _AuthMode.register
-                          ? 'Crear cuenta'
-                          : 'Enviar enlace de recuperación',
-                ),
+                onPressed: state.authBusy ? null : _submit,
+                child: state.authBusy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        _mode == _AuthMode.login
+                            ? 'Entrar a PECOX Vision'
+                            : _mode == _AuthMode.register
+                                ? 'Crear cuenta'
+                                : 'Ver disponibilidad',
+                      ),
               ),
               if (_mode == _AuthMode.recover) ...[
                 const SizedBox(height: 10),
@@ -237,10 +270,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const Divider(),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: () {
-                  ref.read(appStateProvider.notifier).enterGuestMode();
-                  context.push('/guide');
-                },
+                onPressed: state.authBusy
+                    ? null
+                    : () async {
+                        await ref.read(appStateProvider.notifier).enterGuestMode();
+                        if (context.mounted) {
+                          context.push('/guide');
+                        }
+                      },
                 icon: const Icon(Icons.menu_book_outlined, size: 18),
                 label: const Text('Explorar guía de materiales sin cuenta'),
               ),

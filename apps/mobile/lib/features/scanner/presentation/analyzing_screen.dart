@@ -1,70 +1,81 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/services/pecox_api_client.dart';
 import '../../../core/state/app_state.dart';
 import '../../../core/theme/pecox_theme.dart';
 import '../../../core/widgets/pecox_widgets.dart';
 
 class AnalyzingScreen extends ConsumerStatefulWidget {
-  const AnalyzingScreen({super.key, this.autoComplete = true});
+  const AnalyzingScreen({super.key, this.autoStart = true});
 
-  final bool autoComplete;
+  final bool autoStart;
 
   @override
   ConsumerState<AnalyzingScreen> createState() => _AnalyzingScreenState();
 }
 
 class _AnalyzingScreenState extends ConsumerState<AnalyzingScreen> {
-  Timer? _timer;
-  bool _failedOffline = false;
-
   @override
   void initState() {
     super.initState();
-    _startAnalysis();
+    if (widget.autoStart) {
+      Future.microtask(_runAnalysis);
+    }
   }
 
-  void _startAnalysis() {
-    _timer?.cancel();
-    if (!widget.autoComplete) return;
-
-    final isOffline = ref.read(appStateProvider).offlineSim;
-    _timer = Timer(const Duration(milliseconds: 1400), () {
-      if (!mounted) return;
-      if (isOffline) {
-        setState(() => _failedOffline = true);
-      } else {
-        context.pushReplacement('/result');
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _runAnalysis() async {
+    final ok = await ref.read(appStateProvider.notifier).analyzeCapturedImage();
+    if (!mounted) return;
+    if (ok) {
+      context.pushReplacement('/result');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_failedOffline) {
+    final state = ref.watch(appStateProvider);
+    final failure = state.analysisFailure;
+    final errMsg = state.analysisErrorMessage;
+
+    if (!state.analysisBusy && failure != null && errMsg != null) {
+      final isNetwork = failure == ApiFailure.network || failure == ApiFailure.timeout;
+      final isUnauthorized = failure == ApiFailure.unauthorized;
+      final isModelDown = failure == ApiFailure.modelUnavailable;
+
       return Scaffold(
         appBar: AppBar(title: const Text('Analizando imagen')),
         body: Padding(
           padding: const EdgeInsets.all(20),
           child: Center(
             child: PecoxStateCard(
-              icon: Icons.wifi_off,
-              isError: true,
-              title: 'Se perdió la conexión',
-              description:
-                  'No fue posible enviar la fotografía al servidor. No generaremos una predicción falsa.',
-              primaryLabel: 'Reintentar análisis',
+              icon: isNetwork
+                  ? Icons.wifi_off
+                  : isModelDown
+                      ? Icons.model_training_outlined
+                      : Icons.error_outline,
+              isError: !isModelDown,
+              isWarning: isModelDown,
+              title: isNetwork
+                  ? 'No se pudo conectar'
+                  : isUnauthorized
+                      ? 'Sesión requerida o expirada'
+                      : isModelDown
+                          ? 'Modelo ML no disponible'
+                          : 'No se pudo procesar la foto',
+              description: errMsg,
+              primaryLabel: isUnauthorized
+                  ? 'Iniciar sesión'
+                  : 'Reintentar análisis',
               onPrimary: () {
-                ref.read(appStateProvider.notifier).toggleOffline(false);
-                setState(() => _failedOffline = false);
-                _startAnalysis();
+                if (isUnauthorized) {
+                  context.go('/auth');
+                } else {
+                  if (state.offlineSim) {
+                    ref.read(appStateProvider.notifier).toggleOffline(false);
+                  }
+                  _runAnalysis();
+                }
               },
               secondaryLabel: 'Volver a revisar foto',
               onSecondary: () => context.pop(),
@@ -109,7 +120,7 @@ class _AnalyzingScreenState extends ConsumerState<AnalyzingScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'El prototipo está preparando la vista de resultado. No se está ejecutando un modelo ML real ni mostrando porcentajes ficticios.',
+                'Enviando la fotografía al servidor FastAPI para clasificarla con el modelo entrenado.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, height: 1.55, color: PecoxColors.textMuted),
               ),

@@ -1,18 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/state/app_state.dart';
 import '../../../core/theme/pecox_theme.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key, this.autoAdvance = true});
 
   final bool autoAdvance;
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   Timer? _timer;
   bool _hasError = false;
 
@@ -20,12 +22,17 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     if (widget.autoAdvance) {
-      _timer = Timer(const Duration(milliseconds: 1400), () {
-        if (mounted && !_hasError) {
-          context.go('/onboarding');
-        }
-      });
+      _bootstrap();
     }
+  }
+
+  Future<void> _bootstrap() async {
+    final sessionFuture = ref.read(appStateProvider.notifier).restoreSession();
+    _timer = Timer(const Duration(milliseconds: 1100), () async {
+      final restored = await sessionFuture;
+      if (!mounted || _hasError) return;
+      context.go(restored ? '/home' : '/onboarding');
+    });
   }
 
   @override

@@ -23,7 +23,12 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       bottomNavigationBar: const PecoxBottomNav(currentIndex: 0),
       body: SafeArea(
-        child: ListView(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(appStateProvider.notifier).refreshHistory();
+            await ref.read(appStateProvider.notifier).refreshPublicMetadata();
+          },
+          child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
           children: [
             Row(
@@ -200,9 +205,11 @@ class HomeScreen extends ConsumerWidget {
                                 color: PecoxColors.forest900,
                               ),
                             ),
-                            const Text(
-                              'Demo local · Ver estadísticas',
-                              style: TextStyle(
+                            Text(
+                              state.isAuthenticated
+                                  ? 'Sincronizado · Ver estadísticas'
+                                  : 'Modo invitado · Inicia sesión',
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: PecoxColors.emerald700,
@@ -386,11 +393,11 @@ class HomeScreen extends ConsumerWidget {
                   child: const Icon(Icons.bar_chart, color: PecoxColors.emerald700),
                 ),
                 title: const Text(
-                  'Estadísticas y actividad (V2 Demo)',
+                  'Estadísticas y actividad',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                 ),
                 subtitle: const Text(
-                  'Gráficas demostrativas por material',
+                  'Gráficas reales por material y semana',
                   style: TextStyle(fontSize: 12, color: PecoxColors.textMuted),
                 ),
                 trailing: const Icon(Icons.chevron_right),
@@ -421,6 +428,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

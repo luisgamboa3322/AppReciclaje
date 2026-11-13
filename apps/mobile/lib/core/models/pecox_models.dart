@@ -9,11 +9,27 @@ enum MaterialKey {
   other,
 }
 
-enum ResultVariant {
+String materialKeyToApi(MaterialKey key) => key.name;
+
+MaterialKey materialKeyFromApi(String raw) {
+  return MaterialKey.values.firstWhere(
+    (item) => item.name == raw.trim().toLowerCase(),
+    orElse: () => MaterialKey.other,
+  );
+}
+
+enum PredictionStatus {
   identified,
   lowConfidence,
   unknown,
-  error,
+}
+
+PredictionStatus predictionStatusFromApi(String raw) {
+  return switch (raw) {
+    'identified' => PredictionStatus.identified,
+    'low_confidence' => PredictionStatus.lowConfidence,
+    _ => PredictionStatus.unknown,
+  };
 }
 
 enum ClassificationStatus {
@@ -49,12 +65,70 @@ class MaterialDefinition {
   final List<String> examples;
   final List<MaterialStep> steps;
   final String warning;
+
+  MaterialDefinition copyWith({String? label, String? description}) {
+    return MaterialDefinition(
+      key: key,
+      label: label ?? this.label,
+      icon: icon,
+      bgColor: bgColor,
+      fgColor: fgColor,
+      description: description ?? this.description,
+      examples: examples,
+      steps: steps,
+      warning: warning,
+    );
+  }
 }
 
 class MaterialAlternative {
   const MaterialAlternative({required this.key, required this.confidence});
   final MaterialKey key;
   final int confidence;
+}
+
+class PredictionResultModel {
+  const PredictionResultModel({
+    required this.predictionId,
+    required this.material,
+    required this.confidence,
+    required this.alternatives,
+    required this.modelVersion,
+    required this.architecture,
+    required this.status,
+    required this.inferenceMs,
+  });
+
+  final String predictionId;
+  final MaterialKey material;
+  final double confidence;
+  final List<MaterialAlternative> alternatives;
+  final String modelVersion;
+  final String architecture;
+  final PredictionStatus status;
+  final double inferenceMs;
+
+  int get confidencePercent => (confidence * 100).round().clamp(0, 100);
+}
+
+class ModelInfoModel {
+  const ModelInfoModel({
+    required this.status,
+    required this.activeVersion,
+    required this.architecture,
+    required this.note,
+    this.identifiedThreshold,
+    this.lowConfidenceThreshold,
+  });
+
+  final String status;
+  final String? activeVersion;
+  final String? architecture;
+  final double? identifiedThreshold;
+  final double? lowConfidenceThreshold;
+  final String note;
+
+  bool get isReady => status == 'ready';
 }
 
 class ClassificationRecord {
@@ -67,6 +141,8 @@ class ClassificationRecord {
     required this.status,
     required this.dateGroup,
     required this.timestampLabel,
+    this.createdAtUtc,
+    this.modelVersion,
     this.imagePath,
     this.notes,
   });
@@ -79,58 +155,70 @@ class ClassificationRecord {
   final ClassificationStatus status;
   final String dateGroup;
   final String timestampLabel;
+  final DateTime? createdAtUtc;
+  final String? modelVersion;
   final String? imagePath;
   final String? notes;
-}
 
-class DemoPrediction {
-  const DemoPrediction({
-    required this.title,
-    required this.material,
-    required this.confidence,
-    required this.alternatives,
-    required this.modelVersion,
-    required this.headline,
-    required this.explanation,
-  });
-
-  final String title;
-  final MaterialKey material;
-  final int? confidence;
-  final List<MaterialAlternative> alternatives;
-  final String modelVersion;
-  final String headline;
-  final String explanation;
+  ClassificationRecord copyWith({
+    String? title,
+    MaterialKey? confirmedMaterial,
+    ClassificationStatus? status,
+    String? notes,
+  }) {
+    return ClassificationRecord(
+      id: id,
+      title: title ?? this.title,
+      predictedMaterial: predictedMaterial,
+      confirmedMaterial: confirmedMaterial ?? this.confirmedMaterial,
+      confidence: confidence,
+      status: status ?? this.status,
+      dateGroup: dateGroup,
+      timestampLabel: timestampLabel,
+      createdAtUtc: createdAtUtc,
+      modelVersion: modelVersion,
+      imagePath: imagePath,
+      notes: notes ?? this.notes,
+    );
+  }
 }
 
 class UserProfile {
   const UserProfile({
+    this.id,
     required this.name,
     required this.email,
     required this.initials,
     required this.badge,
     required this.isGuest,
+    this.role = 'user',
   });
 
+  final String? id;
   final String name;
   final String email;
   final String initials;
   final String badge;
   final bool isGuest;
+  final String role;
 
   UserProfile copyWith({
+    String? id,
     String? name,
     String? email,
     String? initials,
     String? badge,
     bool? isGuest,
+    String? role,
   }) {
     return UserProfile(
+      id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
       initials: initials ?? this.initials,
       badge: badge ?? this.badge,
       isGuest: isGuest ?? this.isGuest,
+      role: role ?? this.role,
     );
   }
 }
@@ -181,20 +269,20 @@ const List<MaterialDefinition> kMaterials = [
       ),
     ],
     warning:
-        'Plásticos flexibles, films sucios o unicel suelen requerir puntos de acopio específicos.',
+        'Verifica la aceptación local para plásticos flexibles, films o unicel (poliestireno expandido).',
   ),
   MaterialDefinition(
     key: MaterialKey.glass,
     label: 'Vidrio',
     icon: Icons.wine_bar_outlined,
-    bgColor: Color(0xFFE4F2F8),
-    fgColor: Color(0xFF3E7B96),
+    bgColor: Color(0xFFE7F3FF),
+    fgColor: Color(0xFF1F74BF),
     description:
-        'Botellas y frascos de vidrio transparente o de color. Reciclable múltiples veces si no se mezcla con cerámica ni cristales especiales.',
+        'Botellas y frascos de vidrio pueden reciclarse múltiples veces si se separan sin cerámica ni espejos.',
     examples: [
-      'Botellas de jugos, salsas o bebidas',
-      'Frascos de conservas y mermeladas',
-      'Envases cosméticos sin dosificador',
+      'Botellas de bebidas y jugos',
+      'Frascos de mermelada o conservas',
+      'Envases de vidrio transparente o ámbar',
     ],
     steps: [
       MaterialStep(
@@ -203,54 +291,54 @@ const List<MaterialDefinition> kMaterials = [
       ),
       MaterialStep(
         title: 'Enjuaga residuos espesos',
-        detail: 'Quita restos de salsas o aceites del interior.',
+        detail: 'Evita restos de salsas o aceites adheridos.',
       ),
       MaterialStep(
-        title: 'Manipula sin romper',
-        detail: 'Deposítalo entero para evitar riesgos al recolectar.',
+        title: 'Deposita sin romper',
+        detail: 'Manipula con cuidado para prevenir accidentes en la recolección.',
       ),
     ],
     warning:
-        'No mezcles espejos, focos, vidrio templado, pyrex ni cerámica con envases de vidrio.',
+        'No mezcles focos, espejos, cristalería de ventana ni cerámica con envases de vidrio.',
   ),
   MaterialDefinition(
     key: MaterialKey.metal,
     label: 'Metal',
-    icon: Icons.recycling_outlined,
-    bgColor: Color(0xFFEDF0EE),
-    fgColor: Color(0xFF5A6862),
+    icon: Icons.inventory_2_outlined,
+    bgColor: Color(0xFFEBF0EE),
+    fgColor: Color(0xFF3E5950),
     description:
-        'Latas de aluminio y acero o hojalata de uso doméstico. Se recuperan con alta eficiencia cuando están limpias.',
+        'Latas de aluminio y hojalata conservan alto valor de recuperación cuando están limpias y vacías.',
     examples: [
-      'Latas de bebidas de aluminio',
-      'Conservas metálicas y tapas rosca',
-      'Bandejas de aluminio limpias',
+      'Latas de aluminio de bebidas',
+      'Conservas y enlatados de hojalata',
+      'Tapas metálicas de frascos',
     ],
     steps: [
       MaterialStep(
         title: 'Escurre líquidos o aceite',
-        detail: 'Vacía por completo latas de conservas y bebidas.',
+        detail: 'Vacía completamente el contenido del envase.',
       ),
       MaterialStep(
         title: 'Enjuaga y seca',
-        detail: 'Evita restos adheridos en el borde interior.',
+        detail: 'Reduce olores durante el acopio en casa.',
       ),
       MaterialStep(
         title: 'Cuida los bordes cortantes',
-        detail: 'Dobla la tapa hacia adentro con precaución.',
+        detail: 'Dobla tapas hacia adentro si representan riesgo.',
       ),
     ],
     warning:
-        'Aerosoles presurizados, latas de pintura o pilas requieren manejo especial.',
+        'No incluyas aerosoles presurizados ni latas con restos de pintura o solventes en el reciclaje doméstico.',
   ),
   MaterialDefinition(
     key: MaterialKey.cardboard,
     label: 'Cartón',
-    icon: Icons.inventory_2_outlined,
-    bgColor: Color(0xFFF8EFDD),
-    fgColor: Color(0xFF91671E),
+    icon: Icons.all_inbox_outlined,
+    bgColor: Color(0xFFFBF3E4),
+    fgColor: Color(0xFF9E6A1C),
     description:
-        'Cajas corrugadas y empaques de cartón seco. La humedad y la grasa reducen su recuperación.',
+        'Cajas corrugadas y empaques limpios que mantienen sus fibras secas y sin contaminación por grasas.',
     examples: [
       'Cajas de paquetería y envíos',
       'Empaques de cereales o calzado',
@@ -258,50 +346,50 @@ const List<MaterialDefinition> kMaterials = [
     ],
     steps: [
       MaterialStep(
-        title: 'Retira cintas y plásticos',
-        detail: 'Quita rellenos de espuma o cintas gruesas.',
+        title: 'Retira cintas y etiquetas gruesas',
+        detail: 'Quita plásticos de embalaje y relleno externo.',
       ),
       MaterialStep(
         title: 'Verifica que esté seco',
-        detail: 'El cartón manchado con aceite no debe mezclarse.',
+        detail: 'La humedad y la grasa degradan la fibra reciclable.',
       ),
       MaterialStep(
-        title: 'Desarma y aplana',
-        detail: 'Dobla las cajas para ahorrar espacio.',
+        title: 'Aplana las cajas',
+        detail: 'Ahorra espacio y facilita el transporte.',
       ),
     ],
     warning:
-        'Cartón impregnado con comida o grasa debe ir a no aprovechables u orgánicos según normativa local.',
+        'Las partes manchadas de grasa o comida (por ejemplo, base de cajas de pizza) deben descartarse aparte.',
   ),
   MaterialDefinition(
     key: MaterialKey.paper,
     label: 'Papel',
     icon: Icons.description_outlined,
-    bgColor: Color(0xFFF0EBF8),
-    fgColor: Color(0xFF6B5698),
+    bgColor: Color(0xFFEFF8E3),
+    fgColor: Color(0xFF4F7D18),
     description:
-        'Hojas de oficina, cuadernos, periódicos y folletos limpios. Conviene mantenerlos secos y sin plastificados.',
+        'Hojas impresas, cuadernos, sobres y folletos sin plastificado ni humedad excesiva.',
     examples: [
-      'Hojas impresas y cuadernos sin espiral',
-      'Periódicos, revistas y sobres sin ventana',
-      'Bolsas de papel kraft limpias',
+      'Hojas de oficina y apuntes',
+      'Periódicos, revistas y folletos',
+      'Bolsas de papel limpias',
     ],
     steps: [
       MaterialStep(
-        title: 'Separa grapas o espirales',
-        detail: 'Retira anillados metálicos o plásticos gruesos.',
+        title: 'Retira espirales o grapas grandes',
+        detail: 'Separa anillas plásticas o metálicas de cuadernos.',
       ),
       MaterialStep(
         title: 'Mantén las hojas secas',
-        detail: 'Almacena lejos de envases con líquidos.',
+        detail: 'No mezcles papel mojado o sucio con restos orgánicos.',
       ),
       MaterialStep(
-        title: 'Agrupa plano',
-        detail: 'Evita arrugarlo en exceso para facilitar la clasificación.',
+        title: 'Agrúpalas planas',
+        detail: 'Evita arrugar en exceso para preservar la fibra.',
       ),
     ],
     warning:
-        'Servilletas usadas, papel higiénico, tickets térmicos y papel carbón no van en papel reciclable.',
+        'No son reciclables servilletas usadas, papel higiénico, recibos térmicos ni papel carbón.',
   ),
   MaterialDefinition(
     key: MaterialKey.other,
@@ -338,101 +426,3 @@ const List<MaterialDefinition> kMaterials = [
 MaterialDefinition materialByKey(MaterialKey key) {
   return kMaterials.firstWhere((item) => item.key == key, orElse: () => kMaterials.first);
 }
-
-const List<ClassificationRecord> kInitialDemoHistory = [
-  ClassificationRecord(
-    id: 'cls-101',
-    title: 'Botella de plástico PET',
-    predictedMaterial: MaterialKey.plastic,
-    confirmedMaterial: MaterialKey.plastic,
-    confidence: 86,
-    status: ClassificationStatus.confirmed,
-    dateGroup: 'HOY',
-    timestampLabel: 'Hoy, 10:32',
-    notes: 'Ejemplo ilustrativo inicial del prototipo.',
-  ),
-  ClassificationRecord(
-    id: 'cls-102',
-    title: 'Frasco de conservas',
-    predictedMaterial: MaterialKey.glass,
-    confirmedMaterial: MaterialKey.glass,
-    confidence: 92,
-    status: ClassificationStatus.confirmed,
-    dateGroup: 'HOY',
-    timestampLabel: 'Ayer, 18:05',
-    notes: 'Ejemplo ilustrativo de vidrio transparente.',
-  ),
-  ClassificationRecord(
-    id: 'cls-103',
-    title: 'Lata de bebida',
-    predictedMaterial: MaterialKey.plastic,
-    confirmedMaterial: MaterialKey.metal,
-    confidence: 58,
-    status: ClassificationStatus.corrected,
-    dateGroup: 'ESTA SEMANA',
-    timestampLabel: 'Lun, 12:41',
-    notes: 'Ejemplo de corrección manual preservando predicción original.',
-  ),
-  ClassificationRecord(
-    id: 'cls-104',
-    title: 'Caja de paquetería',
-    predictedMaterial: MaterialKey.cardboard,
-    confirmedMaterial: MaterialKey.cardboard,
-    confidence: 89,
-    status: ClassificationStatus.confirmed,
-    dateGroup: 'ESTA SEMANA',
-    timestampLabel: 'Dom, 16:15',
-  ),
-];
-
-const Map<ResultVariant, DemoPrediction> kDemoPredictions = {
-  ResultVariant.identified: DemoPrediction(
-    title: 'Botella de plástico',
-    material: MaterialKey.plastic,
-    confidence: 86,
-    alternatives: [
-      MaterialAlternative(key: MaterialKey.glass, confidence: 8),
-      MaterialAlternative(key: MaterialKey.other, confidence: 4),
-    ],
-    modelVersion: 'demo-ui-v0',
-    headline: 'Vista de demostración · Modelo ML aún no conectado',
-    explanation:
-        'Esta pantalla ilustra el contrato esperado. La inferencia real con PyTorch se conectará en las Fases 3 y 4.',
-  ),
-  ResultVariant.lowConfidence: DemoPrediction(
-    title: 'Objeto reflejante',
-    material: MaterialKey.metal,
-    confidence: 48,
-    alternatives: [
-      MaterialAlternative(key: MaterialKey.glass, confidence: 31),
-      MaterialAlternative(key: MaterialKey.plastic, confidence: 15),
-    ],
-    modelVersion: 'demo-ui-v0',
-    headline: 'Confianza baja · Revisa o corrige manualmente',
-    explanation:
-        'Cuando el puntaje esté por debajo del umbral de validación, la app solicita confirmación manual antes de guardar.',
-  ),
-  ResultVariant.unknown: DemoPrediction(
-    title: 'Objeto no reconocido',
-    material: MaterialKey.other,
-    confidence: 29,
-    alternatives: [
-      MaterialAlternative(key: MaterialKey.cardboard, confidence: 18),
-      MaterialAlternative(key: MaterialKey.plastic, confidence: 14),
-    ],
-    modelVersion: 'demo-ui-v0',
-    headline: 'Material incierto o fuera de categoría',
-    explanation:
-        'La fotografía podría estar borrosa o contener varios residuos mezclados. Puedes elegir el material manualmente.',
-  ),
-};
-
-const List<(String day, int count)> kDemoWeeklyActivity = [
-  ('Lun', 3),
-  ('Mar', 5),
-  ('Mié', 2),
-  ('Jue', 6),
-  ('Vie', 4),
-  ('Sáb', 3),
-  ('Dom', 1),
-];

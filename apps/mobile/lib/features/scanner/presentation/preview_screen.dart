@@ -58,13 +58,13 @@ class PreviewScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.local_drink_outlined,
-                                  size: 84,
-                                  color: PecoxColors.emerald700,
+                                  Icons.image_not_supported_outlined,
+                                  size: 64,
+                                  color: PecoxColors.textMuted,
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Captura de muestra (Prototipo UI)',
+                                  'No se encontró la imagen seleccionada',
                                   style: TextStyle(
                                     color: PecoxColors.forest900,
                                     fontWeight: FontWeight.w700,
