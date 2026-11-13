@@ -2,10 +2,12 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
+from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.classifications import router as classifications_router
 from app.api.v1.guides import router as guides_router
 from app.api.v1.model import router as model_router
+from app.api.v1.statistics import router as statistics_router
 from app.api.v1.users import router as users_router
 from app.core.config import get_settings
 from app.core.logging import RequestContextMiddleware, configure_logging
@@ -38,6 +40,8 @@ def create_app() -> FastAPI:
     v1_router.include_router(classifications_router)
     v1_router.include_router(guides_router)
     v1_router.include_router(model_router)
+    v1_router.include_router(statistics_router)
+    v1_router.include_router(admin_router)
 
     application.include_router(v1_router)
     return application

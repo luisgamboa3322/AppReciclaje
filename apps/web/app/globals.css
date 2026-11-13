@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --pecox-canvas: #fafcfb;
+  --pecox-surface: #ffffff;
+  --pecox-ink: #17221e;
+  --pecox-muted: #556861;
+  --pecox-forest: #12382d;
+  --pecox-emerald: #12c994;
+  --pecox-emerald-deep: #087d60;
+  --pecox-mint: #e9faf3;
+  --pecox-border: #dce7e2;
+}
+
+@layer base {
+  body {
+    background-color: var(--pecox-canvas);
+    color: var(--pecox-ink);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    outline-color: var(--pecox-emerald-deep);
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
