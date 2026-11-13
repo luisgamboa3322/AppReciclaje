@@ -1,0 +1,26 @@
+{
+  "version": "resnet18-trashnet-v1.0.0",
+  "architecture": "resnet18",
+  "classes": [
+    "plastic",
+    "glass",
+    "metal",
+    "cardboard",
+    "paper",
+    "other"
+  ],
+  "image_size": 224,
+  "device_trained_on": "cpu",
+  "seed": 42,
+  "epochs": 6,
+  "freeze_epochs": 2,
+  "batch_size": 32,
+  "best_epoch": 6,
+  "best_val_macro_f1": 0.918,
+  "identified_threshold": 0.5,
+  "low_confidence_threshold": 0.35,
+  "checkpoint_filename": "best_checkpoint.pt",
+  "trained_at_utc": "2026-11-13T22:07:01.833297+00:00",
+  "total_train_seconds": 1054.33,
+  "validation_ece": 0.0917
+}

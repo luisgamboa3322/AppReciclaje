@@ -1,0 +1,30 @@
+{
+  "dataset_id": "trashnet-resized",
+  "source_repository": "https://github.com/garythung/trashnet",
+  "authors": "Gary Thung, Mindy Yang (Stanford CS229)",
+  "license": "MIT",
+  "archive_url": "https://github.com/garythung/trashnet/raw/master/data/dataset-resized.zip",
+  "image_resolution": "512x384 RGB JPEG (resized source archive)",
+  "class_mapping": {
+    "plastic": "plastic",
+    "glass": "glass",
+    "metal": "metal",
+    "cardboard": "cardboard",
+    "paper": "paper",
+    "trash": "other"
+  },
+  "canonical_classes": [
+    "plastic",
+    "glass",
+    "metal",
+    "cardboard",
+    "paper",
+    "other"
+  ],
+  "known_limitations": [
+    "Most samples were captured on bright uniform white/neutral backgrounds with a single isolated object.",
+    "Class 'trash' (mapped to 'other') has fewer samples than paper/glass/plastic/metal (~137 vs ~400-594).",
+    "Exact or near-duplicate studio captures exist and must be deduplicated before train/val/test splitting.",
+    "Real-world mobile captures (cluttered backgrounds, low light, wet/crushed waste, mixed materials) represent domain shift not covered by TrashNet alone."
+  ]
+}

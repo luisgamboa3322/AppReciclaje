@@ -1,0 +1,59 @@
+{
+  "split_used": "val",
+  "val_samples": 360,
+  "val_accuracy_unthresholded": 0.925,
+  "expected_calibration_error_ece": 0.0917,
+  "target_identified_precision": 0.9,
+  "selected_identified_threshold": 0.5,
+  "selected_low_confidence_threshold": 0.35,
+  "threshold_sweep": [
+    {
+      "threshold": 0.5,
+      "coverage": 0.9139,
+      "accuracy_above_threshold": 0.9574,
+      "accepted_count": 329
+    },
+    {
+      "threshold": 0.55,
+      "coverage": 0.8972,
+      "accuracy_above_threshold": 0.9659,
+      "accepted_count": 323
+    },
+    {
+      "threshold": 0.6,
+      "coverage": 0.8722,
+      "accuracy_above_threshold": 0.9682,
+      "accepted_count": 314
+    },
+    {
+      "threshold": 0.65,
+      "coverage": 0.8306,
+      "accuracy_above_threshold": 0.9699,
+      "accepted_count": 299
+    },
+    {
+      "threshold": 0.7,
+      "coverage": 0.7917,
+      "accuracy_above_threshold": 0.9789,
+      "accepted_count": 285
+    },
+    {
+      "threshold": 0.75,
+      "coverage": 0.7639,
+      "accuracy_above_threshold": 0.9818,
+      "accepted_count": 275
+    },
+    {
+      "threshold": 0.8,
+      "coverage": 0.6889,
+      "accuracy_above_threshold": 0.9798,
+      "accepted_count": 248
+    },
+    {
+      "threshold": 0.85,
+      "coverage": 0.6306,
+      "accuracy_above_threshold": 0.9824,
+      "accepted_count": 227
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "total_test_errors": 37,
+  "top_confident_misclassifications": [
+    {
+      "file": "plastic94.jpg",
+      "true_label": "plastic",
+      "predicted_label": "glass",
+      "confidence": 0.9291
+    },
+    {
+      "file": "trash5.jpg",
+      "true_label": "other",
+      "predicted_label": "paper",
+      "confidence": 0.9188
+    },
+    {
+      "file": "glass482.jpg",
+      "true_label": "glass",
+      "predicted_label": "metal",
+      "confidence": 0.8722
+    },
+    {
+      "file": "metal183.jpg",
+      "true_label": "metal",
+      "predicted_label": "glass",
+      "confidence": 0.8574
+    },
+    {
+      "file": "glass269.jpg",
+      "true_label": "glass",
+      "predicted_label": "plastic",
+      "confidence": 0.8455
+    },
+    {
+      "file": "plastic462.jpg",
+      "true_label": "plastic",
+      "predicted_label": "other",
+      "confidence": 0.8423
+    },
+    {
+      "file": "glass192.jpg",
+      "true_label": "glass",
+      "predicted_label": "metal",
+      "confidence": 0.8421
+    },
+    {
+      "file": "metal353.jpg",
+      "true_label": "metal",
+      "predicted_label": "other",
+      "confidence": 0.7919
+    },
+    {
+      "file": "glass213.jpg",
+      "true_label": "glass",
+      "predicted_label": "metal",
+      "confidence": 0.7488
+    },
+    {
+      "file": "paper593.jpg",
+      "true_label": "paper",
+      "predicted_label": "other",
+      "confidence": 0.6929
+    },
+    {
+      "file": "glass13.jpg",
+      "true_label": "glass",
+      "predicted_label": "plastic",
+      "confidence": 0.6824
+    },
+    {
+      "file": "glass378.jpg",
+      "true_label": "glass",
+      "predicted_label": "metal",
+      "confidence": 0.6726
+    },
+    {
+      "file": "glass193.jpg",
+      "true_label": "glass",
+      "predicted_label": "metal",
+      "confidence": 0.6635
+    },
+    {
+      "file": "paper400.jpg",
+      "true_label": "paper",
+      "predicted_label": "cardboard",
+      "confidence": 0.6444
+    },
+    {
+      "file": "paper583.jpg",
+      "true_label": "paper",
+      "predicted_label": "other",
+      "confidence": 0.6417
+    }
+  ]
+}

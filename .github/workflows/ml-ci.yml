@@ -1,0 +1,38 @@
+name: ML CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ml/**"
+      - ".github/workflows/ml-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ml/**"
+      - ".github/workflows/ml-ci.yml"
+
+jobs:
+  ml-check:
+    name: Lint and Test ML Pipeline
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install ML dependencies (CPU)
+        run: uv sync --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Run ML unit and contract tests
+        run: uv run pytest -v

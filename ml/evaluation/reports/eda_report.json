@@ -1,0 +1,56 @@
+{
+  "dataset_id": "trashnet-resized",
+  "seed": 42,
+  "raw_valid_images": 2527,
+  "invalid_or_unreadable_images": 0,
+  "exact_sha256_duplicates_removed": 3,
+  "unique_images_after_exact_dedup": 2524,
+  "unique_dhash_groups": 2519,
+  "near_duplicate_dhash_groups": 4,
+  "canonical_classes": [
+    "plastic",
+    "glass",
+    "metal",
+    "cardboard",
+    "paper",
+    "other"
+  ],
+  "split_totals": {
+    "train": 1803,
+    "val": 360,
+    "test": 361
+  },
+  "split_class_distribution": {
+    "train": {
+      "plastic": 343,
+      "glass": 358,
+      "metal": 292,
+      "cardboard": 288,
+      "paper": 425,
+      "other": 97
+    },
+    "val": {
+      "plastic": 68,
+      "glass": 71,
+      "metal": 59,
+      "cardboard": 57,
+      "paper": 85,
+      "other": 20
+    },
+    "test": {
+      "plastic": 69,
+      "glass": 72,
+      "metal": 58,
+      "cardboard": 58,
+      "paper": 84,
+      "other": 20
+    }
+  },
+  "top_resolutions": {
+    "512x384": 2524
+  },
+  "leakage_checks": {
+    "sha256_cross_split_overlap": 0,
+    "dhash_cross_split_overlap": 0
+  }
+}

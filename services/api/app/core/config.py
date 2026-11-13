@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     ml_model_version: str = "not-connected-yet"
+    ml_artifact_dir: str = ""
     ml_confidence_threshold: float = 0.65
     max_image_upload_mb: int = 10
 
