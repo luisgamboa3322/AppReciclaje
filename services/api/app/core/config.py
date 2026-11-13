@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +9,7 @@ class Settings(BaseSettings):
 
     app_name: str = "PECOX Vision API"
     app_env: str = "development"
-    api_host: str = "0.0.0.0"
+    api_host: str = "127.0.0.1"
     api_port: int = 8000
     cors_origins: str = "http://localhost:3000,http://localhost:8443"
 
@@ -29,6 +30,16 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def validate_production_secret(self) -> "Settings":
+        if self.app_env.strip().lower() == "production":
+            insecure_prefixes = ("dev-only", "replace_with", "change_me")
+            if self.jwt_secret_key.startswith(insecure_prefixes) or len(self.jwt_secret_key) < 32:
+                raise ValueError(
+                    "Production APP_ENV requires a strong random JWT_SECRET_KEY (>= 32 chars)."
+                )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

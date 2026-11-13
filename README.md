@@ -1,124 +1,134 @@
 # PECOX Vision — AI-Powered Recycling Platform
 
-> **Estado actual:** **Fase 0 completada + Prototipo UI/UX interactivo completo (14 pantallas)**.  
-> Los módulos de Flutter (`apps/mobile`), backend FastAPI (`services/api`), modelo PyTorch (`ml`), dashboard web Next.js (`apps/web`) e IoT (`iot`) se encuentran planificados para las siguientes fases y **aún no están implementados**.
+Plataforma integral de clasificación asistida de residuos cotidianos (`plastic`, `glass`, `metal`, `cardboard`, `paper`, `other`) compuesta por **app móvil Flutter**, **backend REST FastAPI + PostgreSQL**, **pipeline de visión computacional PyTorch (`ResNet18`)**, **dashboard administrativo Next.js** y **orquestación Docker + GitHub Actions CI**.
 
 ---
 
-## 1. Contexto y problemática
+## 1. Contexto, alcance y principio de honestidad
 
-La separación correcta de residuos cotidianos suele fallar por desconocimiento de las categorías (`plástico`, `vidrio`, `metal`, `cartón`, `papel`, `otros`) y de cómo preparar los envases antes de desecharlos. **PECOX Vision** aborda el problema mediante una plataforma de software independiente —primero móvil y luego web— antes de integrar conectividad física con una máquina experimental en una fase posterior.
+La separación de residuos suele fallar por dudas entre materiales y falta de preparación del envase (lavado, aplastado o descarte por contaminación). **PECOX Vision** resuelve primero la experiencia de usuario y la analítica operativa en software antes de añadir hardware físico en una fase futura:
 
-**Principio de honestidad del producto:**
-- Identificar un material por fotografía **no certifica** su reciclabilidad en todos los programas municipales ni equivale a un depósito físico verificado.
-- El prototipo actual etiqueta explícitamente los resultados de demostración y las vistas futuras (V2/V3) sin fingir predicciones ML, ahorros de CO₂ o telemetría real.
-
----
-
-## 2. Lo que ya funciona en este repositorio
-
-1. **Prototipo interactivo UI/UX (`src/`):**
-   - Cubre las **14 pantallas** del brief (`UI-01` Splash hasta `UI-14` Conceptos futuros V3) con inspector lateral en escritorio para navegar entre vistas y simular estados transversales (`sin conexión`, `cámara denegada`, `imagen inválida`, `modelo ML caído`, `baja confianza`, `historial vacío`, `texto grande`, `reducir movimiento`).
-2. **Documentación técnica de Fase 0 (`docs/`):**
-   - [Especificación de Requerimientos (SRS)](./docs/requirements/srs.md)
-   - [Arquitectura del Sistema](./docs/architecture/system.md) y [ADR-0001](./docs/architecture/adr/0001-modular-monolith-and-mobile-first.md)
-   - [Design System](./docs/ui-ux/design-system.md) y [Especificación de Pantallas](./docs/ui-ux/screens.md)
-   - [Borrador de contratos API](./docs/api/openapi-draft.md)
-   - [Plan de Pruebas y Calidad](./docs/testing/test-plan.md)
-3. **CI del prototipo (`.github/workflows/prototype-ci.yml`):**
-   - Ejecuta `pnpm exec tsc --noEmit` y `pnpm build`.
+- **Implementado (Fases 0–6):** prototipo UI/UX interactivo de 14 pantallas, app móvil Flutter conectada a la API real, backend FastAPI con JWT + RBAC + PostgreSQL/Alembic, modelo `ResNet18` entrenado y calibrado sobre TrashNet, dashboard administrativo Next.js y empaquetado Docker + auditorías de seguridad.
+- **Reservado como Concepto futuro V3 (`iot/`):** sensores ultrasónicos/balanzas en máquinas RVM, telemetría de llenado y recompensas por depósitos físicamente verificados. Las pantallas de Máquinas y Alertas muestran explícitamente su estado **V3** sin telemetría ni cifras de CO₂ ficticias.
 
 ---
 
-## 3. Arquitectura objetivo
+## 2. Arquitectura del sistema
 
 ```text
-  [App Móvil Android — Flutter]        [Dashboard Web — Next.js (V2)]
+  [App Móvil Android — Flutter]        [PECOX Admin Web — Next.js 15]
+        (apps/mobile, MVP 1.0)                 (apps/web, V2)
                 \                                   /
-                 \--------- HTTPS + REST ----------/
+                 \--------- HTTPS / REST ----------/
                                   |
                         [FastAPI Backend (/api/v1)]
-                         /        |         \
-                 [Auth/RBAC] [Clasificaciones] [Analytics]
-                         \        |         /
-                          +-------+--------+
+                         /        |          \
+                 [Auth/RBAC] [Classifications] [Admin/Stats]
+                         \        |          /
+                          +-------+---------+
                                   |
-                            [PostgreSQL]
+                         [PostgreSQL 16 + Alembic]
 
-        FastAPI -- inference --> [PyTorch Model (ml/inference)]
-
-        (V3) [ESP32 / Sensores] -- eventos autenticados --> FastAPI
+        FastAPI (/predict) ---> [PyTorch ResNet18 (ml/inference)]
+        (V3 futuro) [ESP32 / RVM Hardware] ---> FastAPI
 ```
 
 ---
 
-## 4. Stack tecnológico previsto
+## 3. Stack tecnológico por capa
 
-- **Prototipo UI/UX (actual):** React 19, Vite 8, TypeScript 5.7, Tailwind CSS v4.
-- **Móvil (Fase 1):** Flutter, Material 3, `flutter_riverpod`, `go_router`, `dio`, `camera`, `image_picker`, `flutter_secure_storage`.
-- **Backend (Fase 2):** Python, FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL.
-- **Machine Learning (Fase 3):** PyTorch, torchvision (baseline ResNet18), scikit-learn, Pillow.
-- **Web Admin (Fase 5 / V2):** Next.js, TypeScript, Tailwind CSS, shadcn/ui, Motion for React, TanStack Query/Table, Recharts, Playwright.
+| Capa | Ubicación | Tecnologías |
+|---|---|---|
+| Prototipo UI/UX | [`src/`](./src) | React 19, Vite 8, TypeScript, Tailwind CSS v4 |
+| App Móvil Android | [`apps/mobile/`](./apps/mobile) | Flutter, Material 3, `dio`, `flutter_secure_storage`, `image_picker` |
+| Backend REST | [`services/api/`](./services/api) | Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, PostgreSQL |
+| Machine Learning | [`ml/`](./ml) | PyTorch, torchvision (`ResNet18`), scikit-learn, Pillow |
+| Dashboard Web Admin | [`apps/web/`](./apps/web) | Next.js 15, React 19, TypeScript, Tailwind CSS v4, Motion, Lucide, Vitest |
+| Infraestructura y CI | [`infrastructure/`](./infrastructure), [`.github/workflows/`](./.github/workflows) | Docker Compose, GitHub Actions, Ruff, Pytest, Bandit, `pip-audit`, `pnpm audit` |
 
 ---
 
-## 5. Ejecución local del prototipo actual
+## 4. Métricas reales del modelo ML (`resnet18-trashnet-v1.0.0`)
 
-Requisitos: Node.js 22+ y `pnpm`.
+Entrenamiento y evaluación reproducible sobre **TrashNet** deduplicado mediante SHA-256 (`2,524` imágenes únicas de `2,527` válidas, `0` fuga entre splits `train=1,803 / val=360 / test=361`):
+
+| Métrica (split `test`, `n=361`) | Resultado medido |
+|---|---|
+| **Accuracy global** | **89.75%** |
+| **Macro F1** | **0.8881** (`Macro Precision 0.8805`, `Macro Recall 0.9019`) |
+| **Gating por confianza (`>= 0.50`)** | **91.97% cobertura** · **92.77% accuracy** sobre predicciones identificadas |
+| **Latencia CPU (50 muestras)** | **41.01 ms** (P50) · **42.96 ms** (P95) |
+
+Limitación documentada: TrashNet contiene objetos individuales sobre fondo controlado y presenta confusión visual ocasional entre vidrio transparente (`glass`, recall `79.17%`) y metal reflectivo (`metal`). Por ello, PECOX integra umbrales de incertidumbre (`>= 0.50` identificado, `0.35–0.49` baja confianza, `< 0.35` desconocido) y corrección manual persistida en base de datos. Consulta [`ml/evaluation/reports/metrics.json`](./ml/evaluation/reports/metrics.json) y [`ml/README.md`](./ml/README.md).
+
+---
+
+## 5. Ejecución local y Docker
+
+### Opción A — Docker Compose (`PostgreSQL + FastAPI + PECOX Admin`)
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm dev
+cp .env.example .env
+# En producción, reemplaza JWT_SECRET_KEY por >= 32 caracteres aleatorios
+docker compose up --build
 ```
 
-Validación de tipos y build de producción:
+- API FastAPI: `http://localhost:8000` (`/health`, `/docs`)
+- Dashboard Web Admin: `http://localhost:3000`
 
-```bash
-pnpm exec tsc --noEmit
-pnpm build
-```
+### Opción B — Desarrollo por módulo
 
-Para la futura configuración de entorno local de backend/web, consulta [`.env.example`](./.env.example).
+- **Backend API (`services/api`):**
+  ```bash
+  cd services/api
+  uv sync
+  uv run alembic upgrade head
+  uv run uvicorn app.main:app --reload --port 8000
+  ```
+- **Dashboard Web (`apps/web`):**
+  ```bash
+  cd apps/web
+  pnpm install
+  pnpm dev   # http://localhost:3000
+  ```
+- **App Móvil Flutter (`apps/mobile`):**
+  ```bash
+  cd apps/mobile
+  flutter pub get
+  flutter run --dart-define=PECOX_API_BASE_URL=http://10.0.2.2:8000/api/v1
+  ```
 
 ---
 
-## 6. Estructura del repositorio
+## 6. Verificación y pruebas automatizadas
 
-```text
-AppReciclaje/
-├── src/                    # Prototipo interactivo UI/UX (React + Vite + Tailwind v4)
-├── apps/
-│   ├── mobile/             # App Android Flutter (Fase 1)
-│   └── web/                # Dashboard administrativo Next.js (Fase 5)
-├── services/
-│   └── api/                # Backend REST FastAPI + Alembic (Fase 2)
-├── ml/                     # Datasets (manifiestos), entrenamiento y evaluación PyTorch (Fase 3)
-├── iot/                    # Firmware y protocolos de máquina recicladora V3 (Fase 7)
-├── docs/                   # SRS, arquitectura, ADR, UI/UX, OpenAPI draft y plan de pruebas
-├── infrastructure/         # Docker y guías de despliegue
-├── .github/workflows/      # Flujos de CI
-├── .env.example            # Plantilla de variables sin secretos reales
-├── SECURITY.md             # Política de seguridad y privacidad
-├── CONTRIBUTING.md         # Convenciones de commits y DoD
-└── LICENSE                 # MIT
-```
+| Módulo | Comandos de verificación |
+|---|---|
+| Prototipo (`src/`) | `pnpm exec tsc --noEmit` · `pnpm build` |
+| Backend (`services/api`) | `uv run ruff check app tests alembic` · `uv run pytest -v` |
+| ML (`ml/`) | `uv run ruff check .` · `uv run pytest -v` |
+| Móvil (`apps/mobile`) | `flutter analyze` · `flutter test` |
+| Web Admin (`apps/web`) | `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm build` |
+| Seguridad | `uvx bandit -r app -ll` · `uvx pip-audit --local` · `pnpm audit --prod` |
 
 ---
 
-## 7. Roadmap por fases
+## 7. Roadmap
 
-- [x] **Fase 0 — Análisis, planificación, estructura del repositorio y prototipo UI/UX completo**
-- [ ] **Fase 1 — App móvil Flutter (`apps/mobile`)**
-- [ ] **Fase 2 — Backend FastAPI + PostgreSQL + Alembic (`services/api`)**
-- [ ] **Fase 3 — Entrenamiento y evaluación de modelo PyTorch (`ml`)**
-- [ ] **Fase 4 — Integración end-to-end móvil + API + ML (MVP 1.0)**
-- [ ] **Fase 5 — Dashboard administrativo Next.js (`apps/web`, V2)**
-- [ ] **Fase 6 — DevOps, revisión de seguridad, accesibilidad y release de portafolio**
-- [ ] **Fase 7 — Prototipo físico e integración IoT (`iot`, V3 opcional)**
+- [x] **Fase 0** — Especificación (SRS, arquitectura, ADR-0001, OpenAPI draft, design system) y prototipo interactivo de 14 pantallas.
+- [x] **Fase 1** — App móvil Flutter con flujos completos y pruebas de widget.
+- [x] **Fase 2** — Backend FastAPI, JWT, RBAC, PostgreSQL y migraciones Alembic.
+- [x] **Fase 3** — Dataset auditado (TrashNet), entrenamiento `ResNet18`, calibración de umbrales y servicio `/api/v1/predict`.
+- [x] **Fase 4** — Integración end-to-end Flutter ↔ FastAPI ↔ PyTorch (MVP 1.0).
+- [x] **Fase 5** — Dashboard Web administrativo Next.js + endpoints V2 de analítica y RBAC.
+- [x] **Fase 6** — Endurecimiento de seguridad, contenedores Docker no-root, CI y documentación de portafolio.
+- [ ] **Fase 7** — Hardware RVM físico e integración IoT autenticado (V3 opcional).
 
 ---
 
-## 8. Atribuciones y limitaciones
+## 8. Documentación técnica y licencias
 
-- **Inspiración estética:** dirección visual inspirada en [*Garbage Recycling app design mobile app* — LazyInterface UI UX Team (Dribbble)](https://dribbble.com/shots/22225493-Garbage-Recycling-app-design-mobile-app), interpretada con identidad original de **PECOX Vision** sin copiar activos protegidos.
-- **Limitación actual:** no hay un modelo ML conectado todavía ni persistencia en base de datos; todas las clasificaciones y estadísticas del prototipo corresponden a datos de sesión demostrativos.
+- [SRS](./docs/requirements/srs.md) · [Arquitectura](./docs/architecture/system.md) · [ADR-0001](./docs/architecture/adr/0001-modular-monolith-and-mobile-first.md)
+- [Design System](./docs/ui-ux/design-system.md) · [Pantallas](./docs/ui-ux/screens.md) · [OpenAPI Draft](./docs/api/openapi-draft.md)
+- [Infraestructura Docker](./infrastructure/README.md) · [Política de Seguridad](./SECURITY.md) · [Guía de Contribución](./CONTRIBUTING.md)
+- **Licencia del código:** [MIT](./LICENSE). La referencia estética de Dribbble y el dataset TrashNet se utilizan únicamente bajo atribución e investigación conforme a sus términos originales.

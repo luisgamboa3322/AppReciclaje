@@ -1,5 +1,6 @@
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.health import router as health_router
 from app.api.v1.admin import router as admin_router
@@ -13,6 +14,21 @@ from app.core.config import get_settings
 from app.core.logging import RequestContextMiddleware, configure_logging
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Attach baseline HTTP security headers to all API responses."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=()",
+        )
+        return response
+
+
 def create_app() -> FastAPI:
     configure_logging()
     settings = get_settings()
@@ -23,6 +39,7 @@ def create_app() -> FastAPI:
         description="REST API for PECOX Vision mobile and web clients.",
     )
 
+    application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(RequestContextMiddleware)
     application.add_middleware(
         CORSMiddleware,

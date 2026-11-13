@@ -18,21 +18,38 @@ services:
 
   api:
     build:
-      context: ./services/api
-      dockerfile: ../../infrastructure/docker/api.Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
       APP_ENV: ${APP_ENV:-development}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pecox_dev}:${POSTGRES_PASSWORD:-change_me_local_only}@db:5432/${POSTGRES_DB:-pecox_vision}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-replace_with_a_long_random_secret_for_local_dev}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8443}
+      ML_MODEL_VERSION: ${ML_MODEL_VERSION:-resnet18-trashnet-v1.0.0}
+      ML_ARTIFACT_DIR: ${ML_ARTIFACT_DIR:-}
     ports:
       - "${API_PORT:-8000}:8000"
     command: >
       sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: ../../infrastructure/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
 
 volumes:
   pecox_pgdata:
