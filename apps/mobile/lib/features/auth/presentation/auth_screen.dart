@@ -23,6 +23,45 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   String? _localError;
   String? _infoMsg;
 
+  Future<void> _openServerUrlDialog() async {
+    final ctrl = TextEditingController(text: ref.read(apiBaseUrlProvider));
+    final updated = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Servidor API (/api/v1)'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            labelText: 'URL base API',
+            hintText: 'http://192.168.100.120:8000/api/v1',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(ctrl.text.trim()),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (updated != null && updated.isNotEmpty) {
+      ref.read(apiBaseUrlProvider.notifier).state = updated;
+      await ref.read(appStateProvider.notifier).refreshPublicMetadata();
+      if (mounted) {
+        setState(() {
+          _localError = null;
+          _infoMsg = 'Servidor actualizado a $updated';
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -92,19 +131,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const PecoxBrand(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: PecoxColors.mint100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFBCEBD8)),
-                    ),
-                    child: const Text(
-                      'API FASTAPI · JWT',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: PecoxColors.emerald700,
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: _openServerUrlDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: PecoxColors.mint100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBCEBD8)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.dns_outlined, size: 13, color: PecoxColors.emerald700),
+                          SizedBox(width: 4),
+                          Text(
+                            'API FASTAPI · JWT',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: PecoxColors.emerald700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -113,7 +113,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@pecox.local"
+                placeholder="admin@pecox.dev"
                 className="w-full rounded-xl border border-[#dce7e2] bg-[#FAFCFB] py-2.5 pl-10 pr-3.5 text-sm text-[#17221E] focus:border-[#087D60] focus:bg-white"
               />
             </div>
