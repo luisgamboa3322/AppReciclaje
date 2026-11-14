@@ -1,22 +1,56 @@
-# PECOX Vision — Infraestructura y Docker Compose
+# Infraestructura y Despliegue — PECOX Vision
 
-## Levantar stack completo local (`PostgreSQL + FastAPI + Next.js Admin`)
-
-1. Copia `.env.example` a `.env` en la raíz y define una clave robusta en `JWT_SECRET_KEY` (mínimo 32 caracteres aleatorios en entornos `APP_ENV=production`).
-2. Construye e inicia los servicios:
+## 0. Entorno local (`docker-compose.yml`)
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
-Servicios expuestos:
-- **PostgreSQL 16:** `localhost:5432`
-- **FastAPI Backend (`api`):** `http://localhost:8000` (`/health`, `/docs`, `/api/v1/*`)
-- **PECOX Admin Web (`web`):** `http://localhost:3000`
+Expone PostgreSQL (`localhost:5432`), FastAPI (`http://localhost:8000`) y PECOX Admin (`http://localhost:3000`) con usuarios no-root (`pecox` / `nextjs`) y healthchecks integrados.
 
-## Endurecimiento incluido
+## 1. Preparar variables y modelo ML en el servidor
 
-- Contenedores `api` y `web` ejecutan procesos bajo usuarios no-root (`pecox` y `nextjs`).
-- Healthchecks integrados para `db`, `api` y `web`.
-- En `APP_ENV=production`, `services/api/app/core/config.py` rechaza arrancar si `JWT_SECRET_KEY` conserva valores de ejemplo o mide menos de 32 caracteres.
-- Los pesos PyTorch (`ml/artifacts/*.pt`) no se empaquetan en Git ni por defecto en la imagen liviana de API; para habilitar inferencia ML dentro de Docker monta el volumen `./ml/artifacts:/repo/ml/artifacts` e instala las dependencias de inferencia (`torch`, `torchvision`, `pillow`).
+1. Copia `.env.production.example` a `.env` en la raíz del repositorio y completa `POSTGRES_PASSWORD`, `JWT_SECRET_KEY` (>= 32 caracteres aleatorios), `API_DOMAIN`, `WEB_DOMAIN`, `CORS_ORIGINS` y `NEXT_PUBLIC_API_BASE_URL`.
+2. Asegúrate de tener presentes los artefactos del modelo en `ml/artifacts/` (`best_checkpoint.pt` y `model_metadata.json`). El contenedor `api` los monta en solo lectura (`/repo/ml/artifacts:ro`) con PyTorch CPU.
+
+## 2. Levantar stack completo con TLS (PostgreSQL + API ML + Web Admin + Caddy)
+
+```bash
+docker compose --env-file .env -f docker-compose.prod.yml up -d --build
+```
+
+Notas de seguridad de `docker-compose.prod.yml`:
+- PostgreSQL **no** expone puertos al exterior del host Docker.
+- Caddy gestiona certificados HTTPS automáticamente y limita cuerpos de subida a `12MB`.
+- FastAPI valida en arranque que `APP_ENV=production` no use claves JWT por defecto.
+
+Para crear el primer usuario administrador en producción:
+
+```bash
+docker compose -f docker-compose.prod.yml exec api python -m app.seed
+```
+
+> Cambia o elimina los usuarios seed de demostración antes de abrir registro público.
+
+## 3. Compilar APK de Android para producción
+
+La app móvil lee la URL base mediante `--dart-define=PECOX_API_URL=...` (`apps/mobile/lib/core/config/api_config.dart`):
+
+```bash
+cd apps/mobile
+flutter build apk --release --dart-define=PECOX_API_URL=https://api.tu-dominio.com/api/v1
+```
+
+## 4. Ciclo continuo de mejora del modelo con datos reales
+
+1. Exporta métricas agregadas de correcciones desde producción:
+   ```bash
+   PYTHONPATH=. uv run --project services/api python -m ml.datasets.export_feedback_report \
+     --database-url "$DATABASE_URL"
+   ```
+2. Recolecta fotos reales en `ml/datasets/real_world/<clase>/` priorizando las clases del reporte.
+3. Reentrena con `--profile camera_robust` (consulta [`ml/datasets/real_world/README.md`](../ml/datasets/real_world/README.md)), valida las métricas en el mismo `test` split y reinicia solo el servicio `api`:
+   ```bash
+   docker compose -f docker-compose.prod.yml restart api
+   ```

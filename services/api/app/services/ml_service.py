@@ -35,7 +35,10 @@ def _ensure_repo_on_syspath() -> None:
 
 
 @lru_cache(maxsize=1)
-def _load_predictor_cached(artifact_dir_str: str) -> PredictorProtocol | None:
+def _load_predictor_cached(
+    artifact_dir_str: str,
+    use_tta: bool = False,
+) -> PredictorProtocol | None:
     if not artifact_dir_str.strip():
         return None
 
@@ -58,6 +61,7 @@ def _load_predictor_cached(artifact_dir_str: str) -> PredictorProtocol | None:
     predictor = WasteClassifierPredictor(
         checkpoint_path=checkpoint_path,
         metadata_path=artifact_dir / "model_metadata.json",
+        use_tta=use_tta,
     )
 
     class _Adapter:
@@ -85,7 +89,7 @@ def _load_predictor_cached(artifact_dir_str: str) -> PredictorProtocol | None:
 def get_predictor() -> PredictorProtocol | None:
     """FastAPI dependency returning the loaded single-process predictor or None."""
     settings = get_settings()
-    return _load_predictor_cached(settings.ml_artifact_dir)
+    return _load_predictor_cached(settings.ml_artifact_dir, use_tta=settings.ml_use_tta)
 
 
 def clear_predictor_cache() -> None:

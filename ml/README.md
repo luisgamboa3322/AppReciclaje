@@ -97,3 +97,11 @@ ml/.venv/Scripts/python.exe -m ml.run_pipeline --epochs 6 --freeze-epochs 2
 ```
 
 Para conectar el artefacto entrenado al backend FastAPI (`services/api/`), configura la variable `ML_ARTIFACT_DIR` apuntando a `../../ml/artifacts` e instala los extras de inferencia o ejecuta en el entorno con PyTorch disponible.
+
+---
+
+## 6. Robustez en cámara real y mejora continua (`exp-002`)
+
+- **Inferencia con 2-view TTA (`ML_USE_TTA=true`):** promedio de probabilidades sobre imagen original y espejo horizontal; mejora en el conjunto `test` evaluado con `WasteClassifierPredictor` de `89.20%` (`0.8782` macro-F1, `45.07 ms`) a `89.75%` (`0.8840` macro-F1, `82.97 ms` en CPU). Ver [`ml/experiments/exp-002-camera-robust.md`](experiments/exp-002-camera-robust.md).
+- **Perfil `--profile camera_robust`:** aumentos geométricos, perspectiva, desenfoque, iluminación y oclusión (`RandomPerspective`, `RandomAffine`, `ColorJitter`, `GaussianBlur`, `RandomErasing`) más `--init-checkpoint` para *fine-tuning* desde el modelo base.
+- **Curación de fotos reales (`ml/datasets/real_world/`):** exporta reporte de confusiones sin almacenar fotos de usuarios con `uv run python -m ml.datasets.export_feedback_report` y consulta [`ml/datasets/real_world/README.md`](datasets/real_world/README.md).

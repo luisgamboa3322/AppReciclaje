@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ml_model_version: str = "not-connected-yet"
     ml_artifact_dir: str = ""
     ml_confidence_threshold: float = 0.65
+    ml_use_tta: bool = False
     max_image_upload_mb: int = 10
 
     model_config = SettingsConfigDict(

@@ -69,9 +69,11 @@ Limitación documentada: TrashNet contiene objetos individuales sobre fondo cont
 
 ```bash
 cp .env.example .env
-# En producción, reemplaza JWT_SECRET_KEY por >= 32 caracteres aleatorios
+# En producción, usa .env.production.example y docker-compose.prod.yml (con Caddy TLS e inferencia PyTorch CPU)
 docker compose up --build
 ```
+
+Para despliegue productivo con TLS automático, contenedor ML (`api.ml.Dockerfile`) y compilación de APK móvil con `--dart-define=PECOX_API_URL`, consulta [`infrastructure/README.md`](./infrastructure/README.md).
 
 - API FastAPI: `http://localhost:8000` (`/health`, `/docs`)
 - Dashboard Web Admin: `http://localhost:3000`
@@ -95,7 +97,7 @@ docker compose up --build
   ```bash
   cd apps/mobile
   flutter pub get
-  flutter run --dart-define=PECOX_API_BASE_URL=http://10.0.2.2:8000/api/v1
+  flutter run --dart-define=PECOX_API_URL=http://10.0.2.2:8000/api/v1
   ```
 
 ---

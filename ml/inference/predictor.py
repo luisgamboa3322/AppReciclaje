@@ -60,6 +60,7 @@ class WasteClassifierPredictor:
         metadata_path: Path | None = None,
         identified_threshold: float | None = None,
         low_confidence_threshold: float | None = None,
+        use_tta: bool = False,
     ) -> None:
         if not checkpoint_path.is_file():
             raise FileNotFoundError(f"ML checkpoint not found: {checkpoint_path}")
@@ -105,17 +106,27 @@ class WasteClassifierPredictor:
         )
         self.model.load_state_dict(checkpoint["state_dict"])
         self.model.eval()
+        self.use_tta = bool(use_tta)
         self.transform = build_eval_transform(self.image_size)
 
-    def predict_pil(self, image: Image.Image) -> PredictionResult:
-        """Run deterministic inference on an in-memory PIL Image."""
+    def predict_pil(self, image: Image.Image, use_tta: bool | None = None) -> PredictionResult:
+        """Run deterministic inference (with optional 2-view flip TTA) on a PIL Image."""
         started = time.perf_counter()
         rgb = ImageOps.exif_transpose(image).convert("RGB")
-        tensor = self.transform(rgb).unsqueeze(0).to(self.device)
+        tta_enabled = self.use_tta if use_tta is None else use_tta
+        if tta_enabled:
+            batch = torch.stack(
+                [
+                    self.transform(rgb),
+                    self.transform(ImageOps.mirror(rgb)),
+                ]
+            ).to(self.device)
+        else:
+            batch = self.transform(rgb).unsqueeze(0).to(self.device)
 
         with torch.inference_mode():
-            logits = self.model(tensor)
-            probs = torch.softmax(logits[0], dim=0).cpu().tolist()
+            logits = self.model(batch)
+            probs = torch.softmax(logits, dim=1).mean(dim=0).cpu().tolist()
 
         ranked = sorted(
             zip(self.classes, probs, strict=True),

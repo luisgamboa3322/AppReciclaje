@@ -4,6 +4,7 @@ build/
 .cache/
 .env*
 !.env.example
+!.env.production.example
 .vite/
 vite.config.*.timestamp-*
 *.tsbuildinfo
@@ -22,9 +23,14 @@ venv/
 .pytest_cache/
 *.db
 ml/datasets/raw/
-ml/artifacts/*.pt
-ml/artifacts/*.pth
-ml/artifacts/*.onnx
+ml/datasets/real_world/**/*.jpg
+ml/datasets/real_world/**/*.jpeg
+ml/datasets/real_world/**/*.png
+ml/datasets/real_world/**/*.webp
+ml/artifacts*/*.pt
+ml/artifacts*/*.pth
+ml/artifacts*/*.onnx
+ml/evaluation/reports/feedback_curation_report.json
 
 # Flutter / Mobile (upcoming phase)
 apps/mobile/.dart_tool/

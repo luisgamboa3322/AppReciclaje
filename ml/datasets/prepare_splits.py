@@ -16,12 +16,17 @@ from sklearn.model_selection import StratifiedGroupKFold, StratifiedShuffleSplit
 from ml.training.constants import CANONICAL_CLASSES, CLASS_TO_IDX, TRASHNET_TO_PECOX
 
 DEFAULT_RAW_DIR = Path(__file__).resolve().parent / "raw" / "trashnet" / "dataset-resized"
+DEFAULT_REAL_WORLD_DIR = Path(__file__).resolve().parent / "real_world"
 DEFAULT_SPLITS_CSV = Path(__file__).resolve().parent / "splits.csv"
 DEFAULT_EDA_REPORT = (
     Path(__file__).resolve().parent.parent / "evaluation" / "reports" / "eda_report.json"
 )
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+REAL_WORLD_LABEL_MAP: dict[str, str] = {
+    **TRASHNET_TO_PECOX,
+    "other": "other",
+}
 
 
 @dataclass(frozen=True)
@@ -61,15 +66,23 @@ def compute_dhash(img: Image.Image, hash_size: int = 8) -> str:
     return hex(int("".join(bits), 2))[2:].zfill(hash_size * hash_size // 4)
 
 
-def scan_dataset(raw_root: Path, repo_relative_base: Path) -> tuple[list[ImageRecord], list[str]]:
-    """Validate images, compute hashes, and return canonical records plus any invalid files."""
+def _scan_labeled_directory(
+    root: Path,
+    label_map: dict[str, str],
+    repo_relative_base: Path,
+    *,
+    require_all_dirs: bool,
+) -> tuple[list[ImageRecord], list[str]]:
+    """Scan labeled subdirectories into verified ImageRecord objects."""
     records: list[ImageRecord] = []
     invalid_files: list[str] = []
 
-    for raw_label, pecox_label in sorted(TRASHNET_TO_PECOX.items()):
-        class_dir = raw_root / raw_label
+    for raw_label, pecox_label in sorted(label_map.items()):
+        class_dir = root / raw_label
         if not class_dir.is_dir():
-            raise FileNotFoundError(f"Expected directory not found: {class_dir}")
+            if require_all_dirs:
+                raise FileNotFoundError(f"Expected directory not found: {class_dir}")
+            continue
 
         for img_path in sorted(class_dir.iterdir()):
             if not img_path.is_file() or img_path.suffix.lower() not in IMAGE_EXTENSIONS:
@@ -86,7 +99,10 @@ def scan_dataset(raw_root: Path, repo_relative_base: Path) -> tuple[list[ImageRe
                 invalid_files.append(f"{img_path}: {exc}")
                 continue
 
-            rel_path = img_path.relative_to(repo_relative_base).as_posix()
+            try:
+                rel_path = img_path.relative_to(repo_relative_base).as_posix()
+            except ValueError:
+                rel_path = img_path.as_posix()
             records.append(
                 ImageRecord(
                     relative_path=rel_path,
@@ -101,6 +117,33 @@ def scan_dataset(raw_root: Path, repo_relative_base: Path) -> tuple[list[ImageRe
             )
 
     return records, invalid_files
+
+
+def scan_dataset(
+    raw_root: Path,
+    repo_relative_base: Path,
+    real_world_root: Path | None = None,
+) -> tuple[list[ImageRecord], list[str], int]:
+    """Validate images, compute hashes, and return records, invalid paths, and real-world count."""
+    records, invalid_files = _scan_labeled_directory(
+        root=raw_root,
+        label_map=TRASHNET_TO_PECOX,
+        repo_relative_base=repo_relative_base,
+        require_all_dirs=True,
+    )
+    real_world_count = 0
+    if real_world_root is not None and real_world_root.is_dir():
+        rw_records, rw_invalid = _scan_labeled_directory(
+            root=real_world_root,
+            label_map=REAL_WORLD_LABEL_MAP,
+            repo_relative_base=repo_relative_base,
+            require_all_dirs=False,
+        )
+        records.extend(rw_records)
+        invalid_files.extend(rw_invalid)
+        real_world_count = len(rw_records)
+
+    return records, invalid_files, real_world_count
 
 
 def deduplicate_exact(records: list[ImageRecord]) -> tuple[list[ImageRecord], int]:
@@ -187,18 +230,21 @@ def build_splits_and_eda(
     eda_report_path: Path = DEFAULT_EDA_REPORT,
     seed: int = 42,
     relative_base: Path | None = None,
+    real_world_root: Path | None = DEFAULT_REAL_WORLD_DIR,
 ) -> dict:
     """Run scanning, deduplication, stratified group splitting, and save CSV + EDA JSON."""
     ml_root = relative_base or Path(__file__).resolve().parent.parent
     resolved_raw = raw_root.resolve()
+    resolved_rw = real_world_root.resolve() if real_world_root is not None else None
     try:
         resolved_raw.relative_to(ml_root.resolve())
         base_for_paths = ml_root.resolve()
     except ValueError:
         base_for_paths = resolved_raw.parent
-    raw_records, invalid_files = scan_dataset(
+    raw_records, invalid_files, real_world_images = scan_dataset(
         raw_root=resolved_raw,
         repo_relative_base=base_for_paths,
+        real_world_root=resolved_rw,
     )
     unique_records, exact_duplicates_removed = deduplicate_exact(raw_records)
     assigned = assign_stratified_splits(unique_records, seed=seed)
@@ -248,9 +294,11 @@ def build_splits_and_eda(
 
     near_duplicate_groups = sum(1 for count in dhash_clusters.values() if count > 1)
     report = {
-        "dataset_id": "trashnet-resized",
+        "dataset_id": "trashnet-resized"
+        + ("+real_world" if real_world_images > 0 else ""),
         "seed": seed,
         "raw_valid_images": len(raw_records),
+        "real_world_images": real_world_images,
         "invalid_or_unreadable_images": len(invalid_files),
         "exact_sha256_duplicates_removed": exact_duplicates_removed,
         "unique_images_after_exact_dedup": len(unique_records),
@@ -276,6 +324,7 @@ def build_splits_and_eda(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare deduplicated stratified splits and EDA.")
     parser.add_argument("--raw-root", type=Path, default=DEFAULT_RAW_DIR)
+    parser.add_argument("--real-world-dir", type=Path, default=DEFAULT_REAL_WORLD_DIR)
     parser.add_argument("--splits-csv", type=Path, default=DEFAULT_SPLITS_CSV)
     parser.add_argument("--eda-report", type=Path, default=DEFAULT_EDA_REPORT)
     parser.add_argument("--seed", type=int, default=42)
@@ -285,6 +334,7 @@ def main() -> None:
         splits_csv=args.splits_csv,
         eda_report_path=args.eda_report,
         seed=args.seed,
+        real_world_root=args.real_world_dir,
     )
     print(json.dumps(report, indent=2))
 

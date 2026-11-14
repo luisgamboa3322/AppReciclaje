@@ -23,7 +23,12 @@ from ml.training.constants import (
 )
 from ml.training.dataset import RecyclingSplitDataset
 from ml.training.models import SUPPORTED_ARCHITECTURES, build_classifier
-from ml.training.transforms import build_eval_transform, build_train_transform
+from ml.training.transforms import (
+    SUPPORTED_PROFILES,
+    AugmentationProfile,
+    build_eval_transform,
+    build_train_transform,
+)
 
 DEFAULT_SPLITS_CSV = Path(__file__).resolve().parent.parent / "datasets" / "splits.csv"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "artifacts"
@@ -112,10 +117,14 @@ def train_model(
     image_size: int = INPUT_IMAGE_SIZE,
     seed: int = 42,
     num_workers: int = 0,
+    profile: AugmentationProfile = "baseline",
+    init_checkpoint: Path | None = None,
 ) -> dict:
     """Train and save the best checkpoint selected strictly by validation macro-F1."""
     if architecture not in SUPPORTED_ARCHITECTURES:
         raise ValueError(f"Unsupported architecture '{architecture}'")
+    if profile not in SUPPORTED_PROFILES:
+        raise ValueError(f"Unsupported augmentation profile '{profile}'")
 
     set_deterministic_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -123,7 +132,7 @@ def train_model(
     train_ds = RecyclingSplitDataset(
         splits_csv=splits_csv,
         split="train",
-        transform=build_train_transform(image_size),
+        transform=build_train_transform(image_size, profile=profile),
     )
     val_ds = RecyclingSplitDataset(
         splits_csv=splits_csv,
@@ -150,7 +159,19 @@ def train_model(
     class_weights = torch.tensor(np.clip(raw_weights, 0.5, 3.0), dtype=torch.float32, device=device)
     criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.05)
 
-    model = build_classifier(architecture=architecture, pretrained=True).to(device)
+    model = build_classifier(
+        architecture=architecture,
+        pretrained=init_checkpoint is None,
+    ).to(device)
+    if init_checkpoint is not None:
+        ckpt = torch.load(init_checkpoint, map_location="cpu", weights_only=True)
+        if ckpt.get("architecture") != architecture:
+            raise ValueError(
+                f"Checkpoint architecture {ckpt.get('architecture')} != {architecture}"
+            )
+        if tuple(ckpt.get("classes", ())) != CANONICAL_CLASSES:
+            raise ValueError("Checkpoint canonical classes do not match CANONICAL_CLASSES")
+        model.load_state_dict(ckpt["state_dict"])
 
     output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = output_dir / "best_checkpoint.pt"
@@ -242,6 +263,8 @@ def train_model(
     metadata = {
         "version": version,
         "architecture": architecture,
+        "augmentation_profile": profile,
+        "init_checkpoint": init_checkpoint.name if init_checkpoint is not None else None,
         "classes": list(CANONICAL_CLASSES),
         "image_size": image_size,
         "device_trained_on": str(device),
@@ -273,6 +296,18 @@ def main() -> None:
     parser.add_argument(
         "--architecture", choices=list(SUPPORTED_ARCHITECTURES), default="resnet18"
     )
+    parser.add_argument(
+        "--profile",
+        choices=list(SUPPORTED_PROFILES),
+        default="baseline",
+        help="Augmentation profile ('baseline' or 'camera_robust').",
+    )
+    parser.add_argument(
+        "--init-checkpoint",
+        type=Path,
+        default=None,
+        help="Optional existing checkpoint for warm-start domain adaptation fine-tuning.",
+    )
     parser.add_argument("--version", type=str, default="resnet18-trashnet-v1.0.0")
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--freeze-epochs", type=int, default=2)
@@ -294,6 +329,8 @@ def main() -> None:
         lr_head=args.lr_head,
         lr_backbone=args.lr_backbone,
         seed=args.seed,
+        profile=args.profile,
+        init_checkpoint=args.init_checkpoint,
     )
     print(json.dumps(meta, indent=2))
 

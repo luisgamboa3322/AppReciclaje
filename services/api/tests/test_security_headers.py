@@ -24,3 +24,11 @@ def test_production_rejects_default_or_short_jwt_secret() -> None:
         jwt_secret_key="a_very_strong_random_production_secret_key_with_32_plus_chars",
     )
     assert valid.app_env == "production"
+    assert valid.ml_use_tta is False
+
+    with_tta = Settings(
+        app_env="production",
+        jwt_secret_key="a_very_strong_random_production_secret_key_with_32_plus_chars",
+        ml_use_tta=True,
+    )
+    assert with_tta.ml_use_tta is True
