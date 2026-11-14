@@ -69,7 +69,7 @@ export default function UsersPage() {
   return (
     <AdminShell
       title="Gestión de usuarios"
-      subtitle="Control de cuentas registradas, volumen de actividad y asignación de roles RBAC."
+      subtitle="Control de cuentas registradas, volumen de actividad y asignación de roles."
     >
       {error ? (
         <ErrorBanner message={error} onRetry={() => void loadUsers()} />

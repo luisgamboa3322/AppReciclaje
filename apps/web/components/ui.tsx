@@ -90,7 +90,7 @@ export function FutureConceptBanner({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center rounded-full bg-amber-200/80 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-900">
-              Concepto futuro (V3)
+              Próxima etapa
             </span>
             <h2 className="text-sm font-semibold">{title}</h2>
           </div>

@@ -266,7 +266,7 @@ class _DemoChartArt extends StatelessWidget {
               border: Border.all(color: const Color(0xFFB3EED9)),
             ),
             child: const Text(
-              'GRÁFICA DEMO',
+              'EJEMPLO DE PROGRESO',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,

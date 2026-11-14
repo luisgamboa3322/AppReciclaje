@@ -29,7 +29,7 @@ export default function SettingsPage() {
                 Perfil administrador
               </h2>
               <p className="text-xs text-[#556861]">
-                Validado mediante JWT contra FastAPI
+                Sesión autenticada con el servidor
               </p>
             </div>
           </div>
@@ -45,7 +45,7 @@ export default function SettingsPage() {
                 <dd className="font-semibold text-[#17221E]">{user.email}</dd>
               </div>
               <div className="flex justify-between border-b border-[#edf3f0] pb-2">
-                <dt className="text-[#556861]">Rol RBAC</dt>
+                <dt className="text-[#556861]">Rol de cuenta</dt>
                 <dd className="font-mono font-bold text-[#087D60]">
                   {user.role}
                 </dd>
@@ -76,7 +76,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="rounded-xl border border-[#dce7e2] bg-[#FAFCFB] p-3 text-xs">
-            <p className="text-[#556861]">NEXT_PUBLIC_API_BASE_URL</p>
+            <p className="text-[#556861]">URL del servidor</p>
             <code className="mt-1 block break-all font-mono font-semibold text-[#12382D]">
               {API_BASE_URL}
             </code>

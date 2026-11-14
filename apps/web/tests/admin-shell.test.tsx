@@ -34,7 +34,7 @@ describe("AdminShell RBAC guard", () => {
     expect(screen.queryByText("Contenido protegido")).not.toBeInTheDocument();
   });
 
-  it("renders protected content and V3 navigation badges for admin users", () => {
+  it("renders protected content and upcoming badges for admin users", () => {
     vi.spyOn(authHook, "useAuth").mockReturnValue({
       user: {
         id: "a1",
@@ -58,6 +58,6 @@ describe("AdminShell RBAC guard", () => {
     );
 
     expect(screen.getByText("Contenido protegido")).toBeInTheDocument();
-    expect(screen.getAllByText("V3")).toHaveLength(2);
+    expect(screen.getAllByText("Pronto")).toHaveLength(2);
   });
 });

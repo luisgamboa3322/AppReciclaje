@@ -120,7 +120,7 @@ class _AnalyzingScreenState extends ConsumerState<AnalyzingScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Enviando la fotografía al servidor FastAPI para clasificarla con el modelo entrenado.',
+                'Analizando la imagen con nuestro modelo de reconocimiento de residuos.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, height: 1.55, color: PecoxColors.textMuted),
               ),

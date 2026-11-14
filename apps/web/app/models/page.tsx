@@ -51,7 +51,7 @@ export default function ModelsPage() {
   return (
     <AdminShell
       title="Modelos ML y evaluación"
-      subtitle="Estado en vivo del predictor PyTorch y métricas offline auditadas sobre split de prueba."
+      subtitle="Estado en vivo del modelo de visión y métricas auditadas sobre el conjunto de prueba."
       actions={
         <button
           type="button"

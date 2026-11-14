@@ -147,7 +147,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           Icon(Icons.dns_outlined, size: 13, color: PecoxColors.emerald700),
                           SizedBox(width: 4),
                           Text(
-                            'API FASTAPI · JWT',
+                            'CONEXIÓN SEGURA',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,

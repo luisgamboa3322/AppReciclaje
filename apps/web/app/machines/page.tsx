@@ -8,12 +8,12 @@ import { Card, FutureConceptBanner } from "@/components/ui";
 export default function MachinesPage() {
   return (
     <AdminShell
-      title="Red de máquinas RVM"
-      subtitle="Integración física con puntos inteligentes y sensores IoT — planificado para V3."
+      title="Red de máquinas inteligentes"
+      subtitle="Integración física con puntos de reciclaje y sensores conectados — próxima etapa."
     >
       <FutureConceptBanner
-        title="Módulo reservado para integración IoT física (V3)"
-        description="Por política de honestidad de producto de PECOX Vision, esta vista NO muestra máquinas ficticias ni telemetría simulada. Cuando se conecten estaciones físicas con sensores ultrasónicos o balanzas MQTT/HTTP, su estado en vivo aparecerá aquí."
+        title="Módulo reservado para estaciones inteligentes conectadas"
+        description="Por política de transparencia de PECOX Vision, esta vista NO muestra máquinas ficticias ni telemetría simulada. Cuando se conecten estaciones físicas con sensores reales, su estado en vivo aparecerá aquí."
       />
 
       <div className="grid gap-4 md:grid-cols-3">

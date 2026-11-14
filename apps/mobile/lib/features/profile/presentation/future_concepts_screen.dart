@@ -14,7 +14,7 @@ class _FutureConceptsScreenState extends State<FutureConceptsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Conceptos futuros · V3')),
+      appBar: AppBar(title: const Text('Próximas funciones')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -35,7 +35,7 @@ class _FutureConceptsScreenState extends State<FutureConceptsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'CONCEPTO FUTURO (V3) · NO IMPLEMENTADO EN MVP',
+                          'PRÓXIMA ETAPA · HARDWARE Y SENSORES (PRONTO)',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -44,7 +44,7 @@ class _FutureConceptsScreenState extends State<FutureConceptsScreen> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Estas pantallas ilustran la ampliación futura con máquinas recicladoras físicas e IoT. Ningún valor aquí es telemetría real.',
+                          'Vista previa de la futura integración con estaciones físicas de reciclaje. Ningún valor mostrado aquí corresponde a sensores conectados.',
                           style: TextStyle(
                             fontSize: 12,
                             height: 1.45,
@@ -61,7 +61,7 @@ class _FutureConceptsScreenState extends State<FutureConceptsScreen> {
             SegmentedButton<int>(
               segments: const [
                 ButtonSegment(value: 0, label: Text('A. Recompensas')),
-                ButtonSegment(value: 1, label: Text('B. Máquinas IoT')),
+                ButtonSegment(value: 1, label: Text('B. Estaciones')),
               ],
               selected: {_tab},
               onSelectionChanged: (sel) => setState(() => _tab = sel.first),

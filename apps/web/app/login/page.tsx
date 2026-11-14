@@ -55,7 +55,7 @@ export default function LoginPage() {
         setErrorMsg(err.detail);
       } else {
         setErrorMsg(
-          "No fue posible conectar con el servidor de PECOX API. Verifica que FastAPI esté activo."
+          "No fue posible conectar con el servidor de PECOX Vision. Verifica que el servicio esté activo."
         );
       }
     } finally {
@@ -75,14 +75,14 @@ export default function LoginPage() {
               PECOX Admin
             </h1>
             <p className="text-xs text-[#556861]">
-              Consola Operativa y Analítica V2
+              Consola Operativa y Analítica
             </p>
           </div>
         </div>
 
         <p className="mt-5 text-sm leading-relaxed text-[#556861]">
           Inicia sesión con una cuenta de administrador registrada en{" "}
-          <span className="font-medium text-[#17221E]">PECOX API</span> para
+          <span className="font-medium text-[#17221E]">PECOX Vision</span> para
           auditar clasificaciones, usuarios y métricas del modelo ML.
         </p>
 
@@ -165,7 +165,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 rounded-xl border border-[#edf3f0] bg-[#FAFCFB] px-3.5 py-2.5 text-[11px] text-[#556861]">
-          Endpoint conectado:{" "}
+          Servidor conectado:{" "}
           <code className="font-mono text-[#12382D]">{API_BASE_URL}</code>
         </div>
       </div>

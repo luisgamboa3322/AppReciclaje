@@ -9,11 +9,11 @@ export default function AlertsPage() {
   return (
     <AdminShell
       title="Centro de alertas operativas"
-      subtitle="Reglas automáticas de mantenimiento y anomalías de hardware — planificado para V3."
+      subtitle="Reglas automáticas de mantenimiento y anomalías de hardware — próxima etapa."
     >
       <FutureConceptBanner
-        title="Sin incidentes simulados — pendiente de hardware V3"
-        description="Actualmente no hay estaciones RVM conectadas ni cola de eventos de sensores. Esta sección se activará cuando exista telemetría real desde dispositivos en campo."
+        title="Sin incidentes simulados — pendiente de hardware conectado"
+        description="Actualmente no hay estaciones físicas conectadas ni cola de eventos de sensores. Esta sección se activará cuando exista telemetría real desde dispositivos en campo."
       />
 
       <div className="grid gap-4 md:grid-cols-3">

@@ -35,8 +35,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/users", label: "Usuarios", icon: Users },
   { href: "/analytics", label: "Analítica", icon: BarChart3 },
   { href: "/models", label: "Modelos ML", icon: Cpu },
-  { href: "/machines", label: "Máquinas", icon: ServerCog, badge: "V3" },
-  { href: "/alerts", label: "Alertas", icon: Bell, badge: "V3" },
+  { href: "/machines", label: "Máquinas", icon: ServerCog, badge: "Pronto" },
+  { href: "/alerts", label: "Alertas", icon: Bell, badge: "Pronto" },
   { href: "/settings", label: "Configuración", icon: Settings },
 ];
 
@@ -125,7 +125,7 @@ export function AdminShell({
           <div>
             <p className="text-sm font-bold tracking-tight">PECOX Admin</p>
             <p className="text-[11px] text-emerald-200/80">
-              Gestión Operativa V2
+              Gestión Operativa
             </p>
           </div>
         </Link>

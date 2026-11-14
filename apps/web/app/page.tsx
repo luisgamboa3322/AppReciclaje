@@ -64,7 +64,7 @@ export default function DashboardOverviewPage() {
   return (
     <AdminShell
       title="Resumen operativo"
-      subtitle="Métricas reales agregadas directamente desde PostgreSQL / FastAPI."
+      subtitle="Métricas reales de clasificaciones y actividad de la plataforma."
       actions={
         <button
           type="button"
@@ -176,7 +176,7 @@ export default function DashboardOverviewPage() {
                   Actividad diaria (últimos 7 días UTC)
                 </h2>
                 <p className="text-xs text-[#556861]">
-                  Conteo real diario de clasificaciones guardadas en el backend.
+                  Conteo real diario de clasificaciones registradas en la plataforma.
                 </p>
               </div>
               <DailyTrendChart items={summary.daily_last_7_days} />
@@ -190,7 +190,7 @@ export default function DashboardOverviewPage() {
                   Clasificaciones recientes
                 </h2>
                 <p className="text-xs text-[#556861]">
-                  Últimos registros ingresados desde la app móvil o clientes API.
+                  Últimos registros enviados desde la aplicación móvil.
                 </p>
               </div>
               <Link

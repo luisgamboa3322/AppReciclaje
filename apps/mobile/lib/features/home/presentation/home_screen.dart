@@ -417,7 +417,7 @@ class HomeScreen extends ConsumerWidget {
                   child: const Icon(Icons.memory, color: Color(0xFF91671E)),
                 ),
                 title: const Text(
-                  'Conceptos futuros (V3)',
+                  'Próximas funciones',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                 ),
                 subtitle: const Text(

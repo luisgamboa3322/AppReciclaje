@@ -384,8 +384,8 @@ class ProfileScreen extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.memory, color: PecoxColors.emerald700),
-                    title: const Text('Conceptos futuros (V3)'),
-                    subtitle: const Text('Recompensas verificadas y máquinas IoT'),
+                    title: const Text('Próximas funciones'),
+                    subtitle: const Text('Estaciones inteligentes y recompensas'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/future'),
                   ),
